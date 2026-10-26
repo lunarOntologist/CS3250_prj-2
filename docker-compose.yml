@@ -1,0 +1,28 @@
+services:
+  web:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg2://campuseats:campuseats@db:5432/campuseats
+      SECRET_KEY: campuseats-secret
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: campuseats
+      POSTGRES_USER: campuseats
+      POSTGRES_PASSWORD: campuseats
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d campuseats -U campuseats"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
