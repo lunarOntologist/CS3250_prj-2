@@ -13,4 +13,6 @@ class Posting(db.Model):
     __tablename__ = 'food postings'
     name = db.Column(db.String, nullable=False)
     portions = db.Column(db.Integer, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
     

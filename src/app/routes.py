@@ -49,3 +49,5 @@ def home():
     if current_user.role == 'vendor':
         return render_template('vendor_home.html')
     return render_template('student_home.html')
+
+#TODO create an html page for food posting creation
