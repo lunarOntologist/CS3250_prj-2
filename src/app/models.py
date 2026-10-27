@@ -8,3 +8,9 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     passwd = db.Column(db.LargeBinary, nullable=False)
     role = db.Column(db.String, nullable=False)  # student or vendor
+
+class Posting(db.Model):
+    __tablename__ = 'food postings'
+    name = db.Column(db.String, nullable=False)
+    portions = db.Column(db.Integer, nullable=False)
+    

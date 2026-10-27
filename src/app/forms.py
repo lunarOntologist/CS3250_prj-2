@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, RadioField, SubmitField
+from wtforms import StringField, PasswordField, RadioField, SubmitField, IntegerField
 from wtforms.validators import DataRequired, Length
 
 class SignUpForm(FlaskForm):
@@ -13,3 +13,9 @@ class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(message='Email is required')])
     passwd = PasswordField('Password', validators=[DataRequired(message='Password is required')])
     submit = SubmitField('Login')
+
+
+class FoodForm(FlaskForm):
+    name = StringField('Food Type', validators=[DataRequired](message='Type of food being posted is required') )
+    portions = IntegerField('Number of Portions', validators=[DataRequired](message='Number of portions required'))
+    #TODO fill out space for the time window, possibly using date conversion 
