@@ -20,3 +20,8 @@ class FoodForm(FlaskForm):
     portions = IntegerField('Number of Portions', validators=[DataRequired](message='Number of portions required')) 
     starttime = DateTimeField("Time window start", format='%H:%M', validators=[DataRequired](message = 'Please input a start time'))
     endtime = DateTimeField("Time window end", format='%H:%M', validators=[DataRequired](message = 'Please input an end time'))
+
+    def validate_endtime(self, field):
+        if self.starttime.data and field.data:
+            if field.data <= self.starttime.data:
+                raise ValidationError('End time must be after the start time.')
