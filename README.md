@@ -11,7 +11,7 @@ Each team designates one member as the **Scrum Master** before Sprint 1 begins a
 The Product Owner role is played by the instructor. The instructor has written the backlog and set the user value of each story; your team decides effort, priority within the rules below, and how the work is split.
 
 ```
-Scrum Master: <student's name>
+Scrum Master: Faye Gordon
 ```
 
 # Project Vision
@@ -142,18 +142,19 @@ Before writing any code, split the backlog across the three sprints and record i
 * Planned burndown: list the story points remaining at the start and after each planned sprint.
 
 ```
-Team capacity (story points per sprint): <your team's capacity>
+Team capacity (story points per sprint): 12 (provisional)
 
-Justification (one or two sentences: team size, hours available, course load): <justification>
+Justification (one or two sentences: team size, hours available, course load): Our team has five members, and everyone is balancing coursework alongside the project. We are using 12 story points per sprint as a provisional planning limit until team availability and actual sprint results can be reviewed.
 ```
 
 | Sprint | User stories (in order) | Story points planned | Points remaining after sprint | Dependencies checked (Y/N) |
 | --- | --- | --- | --- | --- |
-| Sprint 1 |  |  |  |  |
-| Sprint 2 |  |  |  |  |
-| Sprint 3 |  |  |  |  |
-| **Total** |  |  | — | — |
-
+| Sprint | User stories (in order) | Story points planned | Points remaining after sprint | Dependencies checked (Y/N) |
+| --- | --- | --- | --- | --- |
+| Sprint 1 | US1, US2, US3 | 12 | 25 | Y |
+| Sprint 2 | US4, US7, US6 | 12 | 13 | Y |
+| Sprint 3 | US5, US8, US10 | 9 | 4 | Y |
+| **Total** | **US1-US8, US10** | **33** | — | — |
 # Sprint Boards
 
 Track all tasks on a GitHub Projects board, Microsoft Teams pages, or any other tool of your preference. 
