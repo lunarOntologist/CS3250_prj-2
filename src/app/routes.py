@@ -1,6 +1,6 @@
 from app import app, db
 from app.models import User
-from app.forms import SignUpForm, LoginForm
+from app.forms import SignUpForm, LoginForm, FoodForm
 from flask import render_template, redirect, url_for
 from flask_login import login_required, login_user, logout_user, current_user
 import bcrypt
@@ -50,4 +50,23 @@ def home():
         return render_template('vendor_home.html')
     return render_template('student_home.html')
 
-#TODO create an html page for food posting creation
+@app.route('/new_listing')
+@login_required
+def new_listing():
+    if current_user.role == 'student':
+        return redirect(url_for('home'))
+    form = FoodForm()
+    if form.validate_on_submit():
+        new_food = FoodForm(
+            name = form.name.data,
+            description = form.description.data,
+            location = form.location.data,
+            tags = form.tags.data,
+            portions = form.portions.data,
+            starttime = form.starttime.data,
+            endtime = form.endtime.data
+        )
+        db.session.add(new_food)
+        db.session.commit()
+        return redirect(url_for('home'))
+
