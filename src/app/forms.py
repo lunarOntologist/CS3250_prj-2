@@ -30,5 +30,5 @@ class FoodForm(FlaskForm):
             if field.data <= self.starttime.data:
                 raise ValidationError('End time must be after the start time.')
             now = datetime.now()
-            if now.strftime('%H:%M') < self.endtime.data:
+            if now.strftime('%H:%M') > self.endtime.data:
                 raise ValidationError('End time must be after current time.')
