@@ -1,12 +1,47 @@
 @startuml class
 
+left to right direction
+
 class User {
-    email
-    name
-    creation_date
-    role
-    password
-    active
+    + id: Integer
+    + name: String
+    + email: String
+    + password_hash: String
+    + role: String (student/vendor)
+    + created_at: DateTime
 }
+
+class Listing {
+    + id: Integer
+    + vendor_id: Integer
+    + title: String
+    + description: String
+    + portions_total: Integer
+    + portions_remaining: Integer
+    + pickup_location: String
+    + window_start: DateTime
+    + window_end: DateTime
+    + status: String (active/ended/cancelled)
+}
+
+class Reservation {
+    + id: Integer
+    + student_id: Integer
+    + listing_id: Integer
+    + portions_reserved: Integer
+    + pickup_code: String
+    + status: String (active/picked_up/cancelled/no-show)
+    + created_at: DateTime
+}
+
+class DietaryTag {
+    + id: Integer
+    + name: String
+}
+
+User "1" --> "*" Listing : posts >
+User "1" --> "*" Reservation : makes >
+Listing "1" --> "*" Reservation : has >
+Listing "*" -- "*" DietaryTag : tagged with >
 
 @enduml
