@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, RadioField, SubmitField, IntegerField, DateTimeField
 from wtforms.validators import DataRequired, Length, ValidationError
+from datetime import datetime
 
 class SignUpForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(message='Name is required')])
@@ -28,3 +29,6 @@ class FoodForm(FlaskForm):
         if self.starttime.data and field.data:
             if field.data <= self.starttime.data:
                 raise ValidationError('End time must be after the start time.')
+            now = datetime.now()
+            if now.strftime('%H:%M') < self.endtime.data:
+                raise ValidationError('End time must be after current time.')
