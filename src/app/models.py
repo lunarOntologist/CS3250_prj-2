@@ -12,6 +12,9 @@ class User(db.Model, UserMixin):
 class Posting(db.Model):
     __tablename__ = 'food postings'
     name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String)
+    tags = db.Column(db.String)
+    location = db.Column(db.String, nullable=False)
     portions = db.Column(db.Integer, nullable=False)
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
