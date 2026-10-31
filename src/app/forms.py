@@ -17,6 +17,9 @@ class LoginForm(FlaskForm):
 
 class FoodForm(FlaskForm):
     name = StringField('Food Type', validators=[DataRequired](message='Type of food being posted is required') )
+    description = StringField('Description')
+    location =  StringField('Location', validators=[DataRequired](message='Location of food required.'))
+    tags = StringField('Tags')
     portions = IntegerField('Number of Portions', validators=[DataRequired](message='Number of portions required')) 
     starttime = DateTimeField("Time window start", format='%H:%M', validators=[DataRequired](message = 'Please input a start time'))
     endtime = DateTimeField("Time window end", format='%H:%M', validators=[DataRequired](message = 'Please input an end time'))
