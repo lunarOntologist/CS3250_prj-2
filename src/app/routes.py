@@ -1,5 +1,5 @@
 from app import app, db
-from app.models import User
+from app.models import User, Posting
 from app.forms import SignUpForm, LoginForm, FoodForm
 from flask import render_template, redirect, url_for
 from flask_login import login_required, login_user, logout_user, current_user
@@ -50,23 +50,25 @@ def home():
         return render_template('vendor_home.html')
     return render_template('student_home.html')
 
-@app.route('/new_listing')
+@app.route('/new_listing', methods=['GET', 'POST'])
 @login_required
 def new_listing():
     if current_user.role == 'student':
         return redirect(url_for('home'))
     form = FoodForm()
     if form.validate_on_submit():
-        new_food = FoodForm(
+        new_food = Posting(
+            vendor_id = current_user.id,
             name = form.name.data,
             description = form.description.data,
             location = form.location.data,
             tags = form.tags.data,
             portions = form.portions.data,
-            starttime = form.starttime.data,
-            endtime = form.endtime.data
+            start_time = form.starttime.data,
+            end_time = form.endtime.data
         )
         db.session.add(new_food)
         db.session.commit()
         return redirect(url_for('home'))
+    return render_template('new_listing.html', form=form)
 
