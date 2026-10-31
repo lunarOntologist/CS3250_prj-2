@@ -1,12 +1,61 @@
-@startuml US#
+@startuml sequence-US4
 
-left to right direction
+autonumber
 
-:User:
-:Student:
-:Vendor:
+actor Student as "Student (Browser)"
+participant Flask as "Flask Route\n(/reserve/<id>)"
+participant Listing as "Listing Model"
+participant Reservation as "Reservation Model"
+database DB as "DB"
 
-package "CampusEats" {
-}
+Student -> Flask: POST /reserve (listing_id, portions)
+activate Flask
+
+Flask -> Listing: query.get(listing_id)
+activate Listing
+Listing -> DB: SELECT * FROM listings WHERE id = :id
+activate DB
+DB --> Listing: listing data
+deactivate DB
+Listing --> Flask: listing object
+deactivate Listing
+
+Flask -> Reservation: check_existing_reservation(student_id, listing_id)
+activate Reservation
+Reservation -> DB: SELECT * FROM reservations WHERE...
+activate DB
+DB --> Reservation: existing record / None
+deactivate DB
+Reservation --> Flask: boolean
+deactivate Reservation
+
+alt Student already has active reservation
+    Flask --> Student: Return Error ("Already have a reservation")
+else Requested portions > portions_remaining
+    Flask --> Student: Return Error ("Not enough portions left")
+else Valid Request
+    Flask -> Reservation: create_reservation()
+    activate Reservation
+    Reservation -> DB: INSERT INTO reservations (...)
+    activate DB
+    DB --> Reservation: success
+    deactivate DB
+    
+    Reservation -> Listing: update portions_remaining
+    activate Listing
+    Listing -> DB: UPDATE listings SET portions_remaining = ...
+    activate DB
+    DB --> Listing: success
+    deactivate DB
+    Listing --> Reservation: updated
+    deactivate Listing
+    
+    Reservation --> Flask: reservation created (with 6-char code)
+    deactivate Reservation
+    
+    Flask --> Student: Render success view with pickup code
+end
+
+deactivate Flask
 
 @enduml
