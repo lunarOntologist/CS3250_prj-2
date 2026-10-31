@@ -8,3 +8,16 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     passwd = db.Column(db.LargeBinary, nullable=False)
     role = db.Column(db.String, nullable=False)  # student or vendor
+
+class Posting(db.Model):
+    __tablename__ = 'food postings'
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String)
+    tags = db.Column(db.String)
+    location = db.Column(db.String, nullable=False)
+    portions = db.Column(db.Integer, nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    
