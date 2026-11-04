@@ -50,12 +50,12 @@ class PostListingForm(FlaskForm):
     )
     pickup_start = DateTimeLocalField(
         'Pickup window start',
-        format='%Y-%m-%dT%H:%M',
+        format='%Y-%m-%d %H:%M:%S',
         validators=[DataRequired(message='Pickup window start is required')],
     )
     pickup_end = DateTimeLocalField(
         'Pickup window end',
-        format='%Y-%m-%dT%H:%M',
+        format='%Y-%m-%d %H:%M:%S',
         validators=[DataRequired(message='Pickup window end is required')],
     )
     submit = SubmitField('Post')
@@ -65,5 +65,5 @@ class PostListingForm(FlaskForm):
             if field.data <= self.pickup_start.data:
                 raise ValidationError('End time must be after the start time.')
             now = datetime.now()
-            if now.strftime('%H:%M') > self.pickup_end.data:
+            if now.strftime('%Y-%m-%d %H:%M:%S') > self.pickup_end.data:
                 raise ValidationError('End time must be after current time.')
