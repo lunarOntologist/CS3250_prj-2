@@ -81,7 +81,7 @@ def new_listing():
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         if form.pickup_end.data < form.pickup_start.data:
             form.pickup_end.errors.append('Pickup window end must be after its start.')
-        elif form.pickup_end.data <= now:
+        elif form.pickup_end.data <= now.strftime('%Y-%m-%d %H:%M:%S'):
             form.pickup_end.errors.append('Pickup window end must be in the future.')
         else:
             listing = Listing(

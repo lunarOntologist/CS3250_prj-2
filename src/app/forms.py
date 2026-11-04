@@ -59,11 +59,3 @@ class PostListingForm(FlaskForm):
         validators=[DataRequired(message='Pickup window end is required')],
     )
     submit = SubmitField('Post')
-
-    def validate_pickup_end(self, field):
-        if self.pickup_start.data and field.data:
-            if field.data <= self.pickup_start.data:
-                raise ValidationError('End time must be after the start time.')
-            now = datetime.now()
-            if now.strftime('%Y-%m-%d %H:%M:%S') > self.pickup_end.data:
-                raise ValidationError('End time must be after current time.')
