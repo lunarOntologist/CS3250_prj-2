@@ -8,3 +8,20 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     passwd = db.Column(db.LargeBinary, nullable=False)
     role = db.Column(db.String, nullable=False)  # student or vendor
+    listings = db.relationship('Listing', back_populates='vendor', lazy=True)
+
+class Listing(db.Model):
+    __tablename__ = 'listings'
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String, nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    portions_total = db.Column(db.Integer, nullable=False)
+    portions_reserved = db.Column(db.Integer, nullable=False, default=0)
+    pickup_location = db.Column(db.String, nullable=False)
+    dietary_tags = db.Column(db.JSON, nullable=False, default=list)
+    pickup_start = db.Column(db.DateTime, nullable=False)
+    pickup_end = db.Column(db.DateTime, nullable=False)
+    cancelled = db.Column(db.Boolean, nullable=False, default=False)
+
+    vendor = db.relationship('User', back_populates='listings')
