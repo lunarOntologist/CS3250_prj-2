@@ -50,12 +50,12 @@ class PostListingForm(FlaskForm):
     )
     pickup_start = DateTimeLocalField(
         'Pickup window start',
-        format='%Y-%m-%dT%H:%M:%S',
+        format='%Y-%m-%dT%H:%M',
         validators=[DataRequired(message='Pickup window start is required')],
     )
     pickup_end = DateTimeLocalField(
         'Pickup window end',
-        format='%Y-%m-%dT%H:%M:%S',
+        format='%Y-%m-%dT%H:%M',
         validators=[DataRequired(message='Pickup window end is required')],
     )
     submit = SubmitField('Post')
