@@ -1,6 +1,15 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, RadioField, SubmitField, IntegerField, DateTimeLocalField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms import (
+    DateTimeLocalField,
+    IntegerField,
+    PasswordField,
+    RadioField,
+    SelectMultipleField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+)
+from wtforms.validators import DataRequired, Length, NumberRange, ValidationError
 from datetime import datetime
 
 class SignUpForm(FlaskForm):
@@ -15,20 +24,46 @@ class LoginForm(FlaskForm):
     passwd = PasswordField('Password', validators=[DataRequired(message='Password is required')])
     submit = SubmitField('Login')
 
+class PostListingForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(message='Title is required')])
+    description = TextAreaField('Description', validators=[DataRequired(message='Description is required')])
+    portions_total = IntegerField(
+        'Number of portions',
+        validators=[
+            DataRequired(message='Number of portions is required'),
+            NumberRange(min=1, max=100, message='Portions must be between 1 and 100'),
+        ],
+    )
+    pickup_location = StringField(
+        'Pickup location',
+        validators=[DataRequired(message='Pickup location is required')],
+    )
+    dietary_tags = SelectMultipleField(
+        'Dietary tags',
+        choices=[
+            ('vegetarian', 'Vegetarian'),
+            ('vegan', 'Vegan'),
+            ('gluten-free', 'Gluten-free'),
+            ('halal', 'Halal'),
+            ('contains nuts', 'Contains nuts'),
+        ],
+    )
+    pickup_start = DateTimeLocalField(
+        'Pickup window start',
+        format='%Y-%m-%d %H:%M:%S',
+        validators=[DataRequired(message='Pickup window start is required')],
+    )
+    pickup_end = DateTimeLocalField(
+        'Pickup window end',
+        format='%Y-%m-%d %H:%M:%S',
+        validators=[DataRequired(message='Pickup window end is required')],
+    )
+    submit = SubmitField('Post')
 
-class FoodForm(FlaskForm):
-    name = StringField('Food Type', validators=[DataRequired(message='Type of food being posted is required')])
-    description = StringField('Description')
-    location =  StringField('Location', validators=[DataRequired(message='Location of food required.')])
-    tags = StringField('Tags')
-    portions = IntegerField('Number of Portions', validators=[DataRequired(message='Number of portions required')])
-    starttime = DateTimeLocalField("Time window start", format='%Y-%m-%dT%H:%M', validators=[DataRequired(message='Please input a start time')])
-    endtime = DateTimeLocalField("Time window end", format='%Y-%m-%dT%H:%M', validators=[DataRequired(message='Please input an end time')])
-
-    def validate_endtime(self, field):
-        if self.starttime.data and field.data:
-            if field.data <= self.starttime.data:
+    def validate_pickup_end(self, field):
+        if self.pickup_start.data and field.data:
+            if field.data <= self.pickup_start.data:
                 raise ValidationError('End time must be after the start time.')
             now = datetime.now()
-            if now.strftime('%H:%M') > self.endtime.data:
+            if now.strftime('%Y-%m-%d %H:%M:%S') > self.pickup_end.data:
                 raise ValidationError('End time must be after current time.')

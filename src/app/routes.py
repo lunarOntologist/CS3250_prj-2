@@ -1,7 +1,8 @@
 from app import app, db
-from app.models import User, Posting
-from app.forms import SignUpForm, LoginForm, FoodForm
-from flask import render_template, redirect, url_for
+from app.models import Listing, User
+from app.forms import PostListingForm, SignUpForm, LoginForm
+from datetime import datetime, timezone
+from flask import abort, render_template, redirect, url_for
 from flask_login import login_required, login_user, logout_user, current_user
 import bcrypt
 
@@ -50,25 +51,51 @@ def home():
         return render_template('vendor_home.html')
     return render_template('student_home.html')
 
-@app.route('/new_listing', methods=['GET', 'POST'])
+@app.route('/listings')
+@login_required
+def listings():
+    if current_user.role != 'student':
+        abort(403)
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    available_listings = (
+        Listing.query
+        .filter(
+            Listing.pickup_end >= now,
+            Listing.portions_total > Listing.portions_reserved,
+            Listing.cancelled.is_(False),
+        )
+        .order_by(Listing.pickup_end.asc(), Listing.id.asc())
+        .all()
+    )
+    return render_template('listings.html', listings=available_listings)
+
+@app.route('/listings/new', methods=['GET', 'POST'])
 @login_required
 def new_listing():
-    if current_user.role == 'student':
-        return redirect(url_for('home'))
-    form = FoodForm()
-    if form.validate_on_submit():
-        new_food = Posting(
-            vendor_id = current_user.id,
-            name = form.name.data,
-            description = form.description.data,
-            location = form.location.data,
-            tags = form.tags.data,
-            portions = form.portions.data,
-            start_time = form.starttime.data,
-            end_time = form.endtime.data
-        )
-        db.session.add(new_food)
-        db.session.commit()
-        return redirect(url_for('home'))
-    return render_template('new_listing.html', form=form)
+    if current_user.role != 'vendor':
+        abort(403)
 
+    form = PostListingForm()
+    if form.validate_on_submit():
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if form.pickup_end.data < form.pickup_start.data:
+            form.pickup_end.errors.append('Pickup window end must be after its start.')
+        elif form.pickup_end.data <= now:
+            form.pickup_end.errors.append('Pickup window end must be in the future.')
+        else:
+            listing = Listing(
+                vendor_id=current_user.id,
+                title=form.title.data,
+                description=form.description.data,
+                portions_total=form.portions_total.data,
+                pickup_location=form.pickup_location.data,
+                dietary_tags=form.dietary_tags.data,
+                pickup_start=form.pickup_start.data,
+                pickup_end=form.pickup_end.data,
+            )
+            db.session.add(listing)
+            db.session.commit()
+            return redirect(url_for('home'))
+
+    return render_template('listing_form.html', form=form)

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Available Food</h1>
+    <p><a href="{{ url_for('home') }}">Student Home</a></p>
+
+    {% if listings %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Food</th>
+                    <th>Vendor</th>
+                    <th>Pickup location</th>
+                    <th>Dietary tags</th>
+                    <th>Portions remaining</th>
+                    <th>Pickup window</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in listings %}
+                    <tr class="{{ loop.cycle('odd_row', 'even_row') }}">
+                        <td>{{ listing.title }}</td>
+                        <td>{{ listing.vendor.name }}</td>
+                        <td>{{ listing.pickup_location }}</td>
+                        <td>{{ listing.dietary_tags|join(', ') if listing.dietary_tags else 'None' }}</td>
+                        <td>{{ listing.portions_total - listing.portions_reserved }}</td>
+                        <td>{{ listing.pickup_start.strftime('%Y-%m-%d %H:%M') }} to {{ listing.pickup_end.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No food listings are currently available.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+{% endblock %}
