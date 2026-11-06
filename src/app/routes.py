@@ -154,6 +154,7 @@ def reserve_portions(listing_id):
 
     flash(f"Reservation successful! Your pickup code is: {code}", "success")
     return redirect(url_for('listings'))
+
 @app.route('/vendor/listings')
 @login_required
 def manage_listings():
