@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import abort, render_template, redirect, url_for, request, flash
 from flask_login import login_required, login_user, logout_user, current_user
 import bcrypt
+from sqlalchemy import select
 
 @app.route('/')
 def index():
@@ -201,6 +202,19 @@ def edit_listing(listing_id):
                 return redirect(url_for('home'))
         
     return render_template('listing_form.html', form=form)
+
+@app.route('/vendor/listings/<int:listing_id>/cancel', methods=['GET', 'POST'])
+@login_required
+def cancel_listing(listing_id):
+    current_listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    rstmt = select(Reservation).where(Reservation.listing.has(Listing.id == listing_id))
+    reservations = db.session.scalars(rstmt).all()
+    for reservation in reservations:
+        db.session.delete(reservation)
+    db.session.delete(current_listing)
+    db.session.commit()
+        
+    return redirect(url_for('home'))
         
 
 
