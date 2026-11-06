@@ -218,7 +218,8 @@ Write one automated black box test with Selenium for one user story of your choi
 | User story | Acceptance criterion | Tester | Date | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
 | US1 | 2: duplicate email rejected | Name | 99/99/26 | passed |  |
-| ... | ... | ... | ... | ... | ... |
+| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/6/2026 | Failed | ... |
+| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/6/2026 | Passed | I had to make it loop through reservations |
 
 # Repository Structure
 
