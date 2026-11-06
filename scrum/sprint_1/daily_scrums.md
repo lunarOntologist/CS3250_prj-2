@@ -63,7 +63,7 @@
 **Follow-up**
 - Continue working on assigned tasks and communicate any changes in progress.
 
-# # # October 29, 2026 — Daily Scrum
+# # October 29, 2026 — Daily Scrum
 
 **Format:** Asynchronous discussion in Microsoft Teams
 
@@ -98,7 +98,7 @@
 - Yasir shared the Docker commands for cloning the repository, checking out and updating `dev`, and running `docker compose up --build`.
 - The team was directed to open the application at `http://localhost:5000` after starting Docker Compose.
 
-# # # October 30, 2026 — Daily Scrum
+# # October 30, 2026 — Daily Scrum
 
 **Format:** Asynchronous discussion in Microsoft Teams
 
@@ -116,7 +116,7 @@
 - Finish the HTML food-posting form for US2.
 - Continue coordinating US4 so it can be addressed in the next sprint.
 
-# # # October 31, 2026 — Development Update and Team Coordination
+# # October 31, 2026 — Development Update and Team Coordination
 
 **Format:** Asynchronous discussion in Microsoft Teams
 
@@ -150,7 +150,7 @@
 **Follow-up**
 - Team members would share progress and coordinate outstanding work at the next opportunity.
 
-# # # November 3, 2026 — Daily Scrum and Sprint 2 Coordination
+# # November 3, 2026 — Daily Scrum and Sprint 2 Coordination
 
 **Format:** In-person meeting during class
 
@@ -173,11 +173,11 @@
 - Review HTML implementation with Yasir.
 - Continue maintaining Scrum and project documentation.
 
-# # # November 4, 2026 — Daily Scrum and Development Coordination
+# #November 4, 2026 — Daily Scrum and Development Coordination
 
 **Format:** Asynchronous discussion in Microsoft Teams
 
-**Participants:** Everyone (some team members working independently and others collaborating)
+**Participants:** Faye, Yasir Artemis, Nikki
 
 **Progress and Updates**
 - Nikki reported that he had completed his version of US3 (Browse Listings) and planned to push it to a separate US3 branch.
@@ -196,3 +196,42 @@
 - Complete integration and testing of the US2 and US3 changes before merging.
 - Make sure team members pull the latest `dev` branch before starting work on existing features.
 - Coordinate the next steps for US4.
+
+**Additional Progress and Updates**
+- Artemis reviewed the US3 listings page against the acceptance criteria, and Nikki tested the implementation.
+- Testing revealed an issue preventing listings from being posted through the browser. The date format expected by `forms.py` did not match the format sent by the date picker.
+- An additional issue was identified in `validate_pickup_end`, which attempted to compare a string with a datetime object.
+- Artemis pushed updates to `forms.py` and `routes.py` to address the date-format and validation issues.
+
+**Planning and Decisions**
+- The team clarified that daily Scrum check-ins would primarily take place asynchronously through Microsoft Teams, with additional coordination during class when available.
+- Faye explained that check-ins should cover completed work, remaining tasks, and overall sprint progress.
+- Yasir created the Kanban board and backfilled the Sprint 1 issues. Team members were asked to create and assign their own Sprint 2 issues, apply appropriate labels, update the board as work progresses, and reference issue numbers in pull requests using `closes #_`.
+- Artemis planned to take on US4 (Reserve Portions) if work had not started by Friday. Faye offered to help by developing an initial skeleton during office hours if needed.
+
+**Follow-up**
+- Retest the listing submission functionality after Artemis's changes.
+- Continue monitoring progress on US4.
+- Make sure Sprint 2 tasks are tracked on the Kanban board and linked to pull requests.
+
+# # November 5, 2026 — Daily Scrum and Sprint 2 Coordination
+
+**Format:** Asynchronous discussion in Microsoft Teams
+
+**Participants:** Faye, Artemis, Jess, and Nikki
+
+**Progress and Updates**
+- Nikki reported that he was feeling unwell and would not attend class but offered to help with any unassigned Sprint 2 tasks.
+- Jess confirmed that he was actively working on US4 (Reserve Portions) and planned to push his branch later in the day.
+- Faye acknowledged Jess's update and confirmed that he was expected to take responsibility for US4.
+
+**Planning and Decisions**
+- Nikki asked whether he should begin working on US5 (Manage Listings).
+- Artemis clarified that Faye and Artemis were already working on US5.
+- Artemis suggested that Nikki could begin working on US6 (My Reservations).
+
+**Follow-up**
+- Jess to push his US4 branch and coordinate integration.
+- Faye and Artemis to continue working on US5.
+- Nikki to begin US6 if available.
+- Continue updating the Kanban board and checking in through Microsoft Teams.
