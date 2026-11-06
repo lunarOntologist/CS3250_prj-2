@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import abort, render_template, redirect, url_for, request, flash
 from flask_login import login_required, login_user, logout_user, current_user
 import bcrypt
+from sqlalchemy import select
 
 @app.route('/')
 def index():
@@ -172,3 +173,48 @@ def manage_listings():
         'vendor_listings.html',
         listings=vendor_listings
     )
+
+@app.route('/vendor/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_listing(listing_id):
+    listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    form = PostListingForm(obj=listing) if request.method == 'GET' else PostListingForm()
+    if form.validate_on_submit():
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if form.pickup_end.data < form.pickup_start.data:
+            form.pickup_end.errors.append('Pickup window end must be after its start.')
+        elif form.pickup_end.data <= now:
+            form.pickup_end.errors.append('Pickup window end must be in the future.')
+        elif form.portions_total.data < listing.portions_reserved:
+            form.portions_total.errors.append('Total portions cannot be less than reserved portions.')
+        else:
+            
+                listing.title = form.title.data
+                listing.description = form.description.data
+                listing.portions_total = form.portions_total.data
+                listing.pickup_location = form.pickup_location.data
+                listing.dietary_tags = form.dietary_tags.data
+                listing.pickup_start = form.pickup_start.data
+                listing.pickup_end = form.pickup_end.data
+                
+                db.session.add(listing)
+                db.session.commit()
+                return redirect(url_for('home'))
+        
+    return render_template('listing_form.html', form=form)
+
+@app.route('/vendor/listings/<int:listing_id>/cancel', methods=['GET', 'POST'])
+@login_required
+def cancel_listing(listing_id):
+    current_listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    rstmt = select(Reservation).where(Reservation.listing.has(Listing.id == listing_id))
+    reservations = db.session.scalars(rstmt).all()
+    for reservation in reservations:
+        db.session.delete(reservation)
+    db.session.delete(current_listing)
+    db.session.commit()
+        
+    return redirect(url_for('home'))
+        
+
+
