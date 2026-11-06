@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Manage Your Listings</h1>
+    <p><a href="{{ url_for('home') }}">Vendor Home</a></p>
+    <p><a href="{{ url_for('new_listing') }}">Post a New Listing</a></p>
+
+    {% if listings %}
+        {% for listing in listings %}
+            <section>
+                <h2>{{ listing.title }}</h2>
+                <p>{{ listing.description }}</p>
+                <p>Portions: {{ listing.portions_reserved }} / {{ listing.portions_total }} reserved</p>
+                <p>Pickup location: {{ listing.pickup_location }}</p>
+                <p>Pickup window: {{ listing.pickup_start }} - {{ listing.pickup_end }}</p>
+
+                {% if listing.cancelled %}
+                    <p>Status: Cancelled</p>
+                {% else %}
+                    <p>Status: Active</p>
+                {% endif %}
+            </section>
+        {% endfor %}
+    {% else %}
+        <p>You haven't posted any listings yet.</p>
+    {% endif %}
+{% endblock %}
