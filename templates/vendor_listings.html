@@ -12,7 +12,8 @@
                 <p>Portions: {{ listing.portions_reserved }} / {{ listing.portions_total }} reserved</p>
                 <p>Pickup location: {{ listing.pickup_location }}</p>
                 <p>Pickup window: {{ listing.pickup_start }} - {{ listing.pickup_end }}</p>
-
+                <!--<button type="button" class="button edit_button" onclick=simple_action("{{ url_for('edit_listing', listing_id=listing.id) }}")>Edit</button>-->
+                <a href="{{ url_for('edit_listing', listing_id=listing.id) }}">Edit Listing</a>
                 {% if listing.cancelled %}
                     <p>Status: Cancelled</p>
                 {% else %}
