@@ -3,6 +3,15 @@
     <h1>Available Food</h1>
     <p><a href="{{ url_for('home') }}">Student Home</a></p>
 
+    <!-- Flash Messages (Displays your pickup code or error warnings) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     {% if listings %}
         <table>
             <thead>
@@ -13,6 +22,7 @@
                     <th>Dietary tags</th>
                     <th>Portions remaining</th>
                     <th>Pickup window</th>
+                    <th>Action</th> <!-- Added Action Header -->
                 </tr>
             </thead>
             <tbody>
@@ -24,6 +34,17 @@
                         <td>{{ listing.dietary_tags|join(', ') if listing.dietary_tags else 'None' }}</td>
                         <td>{{ listing.portions_total - listing.portions_reserved }}</td>
                         <td>{{ listing.pickup_start.strftime('%Y-%m-%d %H:%M') }} to {{ listing.pickup_end.strftime('%Y-%m-%d %H:%M') }}</td>
+                        
+                        <!-- Added Reservation Form Column -->
+                        <td>
+                            <form action="{{ url_for('reserve_portions', listing_id=listing.id) }}" method="POST" style="display: flex; gap: 6px; align-items: center;">
+                                <select name="portions">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                </select>
+                                <button type="submit">Reserve</button>
+                            </form>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
