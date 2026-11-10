@@ -3,7 +3,6 @@
     <h1>Available Food</h1>
     <p><a href="{{ url_for('home') }}">Student Home</a></p>
 
-    <!-- Flash Messages (Displays your pickup code or error warnings) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -22,7 +21,7 @@
                     <th>Dietary tags</th>
                     <th>Portions remaining</th>
                     <th>Pickup window</th>
-                    <th>Action</th> <!-- Added Action Header -->
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,7 +34,6 @@
                         <td>{{ listing.portions_total - listing.portions_reserved }}</td>
                         <td>{{ listing.pickup_start.strftime('%Y-%m-%d %H:%M') }} to {{ listing.pickup_end.strftime('%Y-%m-%d %H:%M') }}</td>
                         
-                        <!-- Added Reservation Form Column -->
                         <td>
                             <form action="{{ url_for('reserve_portions', listing_id=listing.id) }}" method="POST" style="display: flex; gap: 6px; align-items: center;">
                                 <select name="portions">
