@@ -9,15 +9,36 @@
             <section>
                 <h2>{{ listing.title }}</h2>
                 <p>{{ listing.description }}</p>
-                <p>Portions: {{ listing.portions_reserved }} / {{ listing.portions_total }} reserved</p>
+                <p>Portions: {{ listing.portions_reserved }} reserved, {{ listing.portions_total - listing.portions_reserved }} remaining (out of {{ listing.portions_total }})</p>
                 <p>Pickup location: {{ listing.pickup_location }}</p>
-                <p>Pickup window: {{ listing.pickup_start }} - {{ listing.pickup_end }}</p>
-                <a href="{{ url_for('edit_listing', listing_id=listing.id) }}">Edit Listing</a>
-                <a href="{{ url_for('cancel_listing', listing_id=listing.id) }}">Cancel Listing</a>
+                <p>Pickup window: {{ listing.pickup_start.strftime('%Y-%m-%d %H:%M') }} - {{ listing.pickup_end.strftime('%Y-%m-%d %H:%M') }}</p>
                 {% if listing.cancelled %}
                     <p>Status: Cancelled</p>
+                {% elif listing.pickup_end < now %}
+                    <p>Status: Ended</p>
                 {% else %}
                     <p>Status: Active</p>
+                    <a href="{{ url_for('edit_listing', listing_id=listing.id) }}">Edit Listing</a>
+                    <a href="{{ url_for('cancel_listing', listing_id=listing.id) }}">Cancel Listing</a>
+                {% endif %}
+
+                {% if listing.reservations %}
+                    <table>
+                        <thead>
+                            <tr><th>Student</th><th>Portions</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for r in listing.reservations %}
+                                <tr class="{{ loop.cycle('odd_row', 'even_row') }}">
+                                    <td>{{ r.student.name }}</td>
+                                    <td>{{ r.portions }}</td>
+                                    <td>{{ r.status }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No reservations yet.</p>
                 {% endif %}
             </section>
         {% endfor %}

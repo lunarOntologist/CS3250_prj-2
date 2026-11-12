@@ -14,6 +14,21 @@ The Product Owner role is played by the instructor. The instructor has written t
 Scrum Master: Faye Gordon
 ```
 
+# Running the App
+
+```
+docker compose up --build
+```
+
+Then open http://localhost:5000. Seed accounts are created on first start:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Vendor | vendor@test.com | password123 |
+| Student | student@test.com | password123 |
+
+The vendor starts with 3 sample listings.
+
 # Project Vision
 
 **CampusEats** connects campus food vendors that have leftover food with students who want it, so less food is thrown away and fewer students go hungry.
