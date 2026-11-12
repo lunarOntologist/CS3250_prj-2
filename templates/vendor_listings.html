@@ -5,22 +5,55 @@
     <p><a href="{{ url_for('new_listing') }}">Post a New Listing</a></p>
 
     {% if listings %}
-        {% for listing in listings %}
-            <section>
-                <h2>{{ listing.title }}</h2>
-                <p>{{ listing.description }}</p>
-                <p>Portions: {{ listing.portions_reserved }} / {{ listing.portions_total }} reserved</p>
-                <p>Pickup location: {{ listing.pickup_location }}</p>
-                <p>Pickup window: {{ listing.pickup_start.strftime('%m/%d/%Y, %I:%M %p') }} - {{ listing.pickup_end.strftime('%m/%d/%Y, %I:%M %p') }}</p>
-                <a href="{{ url_for('edit_listing', listing_id=listing.id) }}">Edit Listing</a>
-                <a href="{{ url_for('cancel_listing', listing_id=listing.id) }}">Cancel Listing</a>
-                {% if listing.cancelled %}
-                    <p>Status: Cancelled</p>
-                {% else %}
-                    <p>Status: Active</p>
-                {% endif %}
-            </section>
-        {% endfor %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Food</th>
+                    <th>Status</th>
+                    <th>Portions reserved</th>
+                    <th>Portions remaining</th>
+                    <th>Pickup location</th>
+                    <th>Dietary tags</th>
+                    <th>Pickup window</th>
+                    <th>Reservations</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in listings %}
+                    {% set status = listing_status(listing) %}
+                    <tr class="{{ loop.cycle('odd_row', 'even_row') }}">
+                        <td>
+                            <strong>{{ listing.title }}</strong><br>
+                            {{ listing.description }}
+                        </td>
+                        <td>{{ status|title }}</td>
+                        <td>{{ listing.portions_reserved }}</td>
+                        <td>{{ listing.portions_total - listing.portions_reserved }}</td>
+                        <td>{{ listing.pickup_location }}</td>
+                        <td>{{ listing.dietary_tags|join(', ') if listing.dietary_tags else 'None' }}</td>
+                        <td>{{ listing.pickup_start.strftime('%m/%d/%Y, %I:%M %p') }} - {{ listing.pickup_end.strftime('%m/%d/%Y, %I:%M %p') }}</td>
+                        <td>
+                            {% if listing.reservations %}
+                                <ul>
+                                    {% for reservation in listing.reservations %}
+                                        <li>{{ reservation.student.name }} — {{ reservation.portions }} portion(s) — {{ reservation.status|replace('_', ' ')|title }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                No reservations
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not listing.cancelled %}
+                                <a href="{{ url_for('edit_listing', listing_id=listing.id) }}">Edit</a>
+                                <br><a href="{{ url_for('cancel_listing', listing_id=listing.id) }}">Cancel</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
         <p>You haven't posted any listings yet.</p>
     {% endif %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>My Reservations</h1>
+    <p><a href="{{ url_for('home') }}">Student Home</a></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% if reservations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Listing</th>
+                    <th>Vendor</th>
+                    <th>Pickup location</th>
+                    <th>Dietary tags</th>
+                    <th>Pickup window</th>
+                    <th>Portions</th>
+                    <th>Pickup code</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                    <tr>
+                        <td>{{ reservation.listing.title }}</td>
+                        <td>{{ reservation.listing.vendor.name }}</td>
+                        <td>{{ reservation.listing.pickup_location }}</td>
+                        <td>{{ reservation.listing.dietary_tags|join(', ') if reservation.listing.dietary_tags else 'None' }}</td>
+                        <td>{{ reservation.listing.pickup_start.strftime('%m/%d/%Y, %I:%M %p') }} to {{ reservation.listing.pickup_end.strftime('%m/%d/%Y, %I:%M %p') }}</td>
+                        <td>{{ reservation.portions }}</td>
+                        <td>{{ reservation.pickup_code }}</td>
+                        <td>{{ reservation.status|replace('_', ' ')|title }}</td>
+                        <td>
+                            {% if reservation.status == 'active' and reservation.listing.pickup_end > now %}
+                                <form action="{{ url_for('cancel_reservation', reservation_id=reservation.id) }}" method="POST">
+                                    <button type="submit">Cancel</button>
+                                </form>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You do not have any reservations yet.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+{% endblock %}
