@@ -32,7 +32,7 @@
                                 <tr class="{{ loop.cycle('odd_row', 'even_row') }}">
                                     <td>{{ r.student.name }}</td>
                                     <td>{{ r.portions }}</td>
-                                    <td>{{ r.status }}</td>
+                                    <td>{{ r.status.replace('_', ' ') }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
