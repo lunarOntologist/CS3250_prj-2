@@ -217,9 +217,12 @@ Write one automated black box test with Selenium for one user story of your choi
 
 | User story | Acceptance criterion | Tester | Date | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| US1 | 2: duplicate email rejected | Name | 99/99/26 | passed |  |
-| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/6/2026 | Failed | ... |
-| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/6/2026 | Passed | I had to make it loop through reservations |
+| US1 | Duplicate email rejected | Nikki | 11/12/26 | passed |  |
+| US2 | Vendor posts a valid listing with a future pickup window and sees it saved to the vendor account | Nikki | 11/12/26 |  |  |
+| US3 | Student sees only active listings with portions remaining, sorted by earliest pickup end | Nikki | 11/12/26 |  |  |
+| US4 | Student reserves available portions and receives a unique 6-character pickup code | Nikki | 11/12/26 |  |  |
+| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/06/2026 | Passed | I had to make it loop through reservations |
+| US6 | Student cancels an active reservation and the portions are returned to the listing | Nikki | 11/12/26 |  |  |
 
 # Repository Structure
 
