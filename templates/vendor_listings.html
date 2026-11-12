@@ -11,7 +11,7 @@
                 <p>{{ listing.description }}</p>
                 <p>Portions: {{ listing.portions_reserved }} reserved, {{ listing.portions_total - listing.portions_reserved }} remaining (out of {{ listing.portions_total }})</p>
                 <p>Pickup location: {{ listing.pickup_location }}</p>
-                <p>Pickup window: {{ listing.pickup_start }} - {{ listing.pickup_end }}</p>
+                <p>Pickup window: {{ listing.pickup_start.strftime('%Y-%m-%d %H:%M') }} - {{ listing.pickup_end.strftime('%Y-%m-%d %H:%M') }}</p>
                 {% if listing.cancelled %}
                     <p>Status: Cancelled</p>
                 {% elif listing.pickup_end < now %}

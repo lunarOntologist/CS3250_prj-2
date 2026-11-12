@@ -138,3 +138,12 @@ input[type="submit"] {
 .error {
     color: #b91c1c;
 }
+
+/* flash messages */
+.alert-success {
+    color: #15803d;
+}
+
+.alert-danger {
+    color: #b91c1c;
+}
