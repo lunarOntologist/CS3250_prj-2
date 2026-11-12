@@ -4,5 +4,6 @@
     <p>Welcome, {{ current_user.name }}!</p>
     <p><a href="{{ url_for('new_listing') }}">Post a food listing</a></p>
     <p><a href="{{ url_for('manage_listings') }}">Manage my listings</a></p>
+    <p><a href="{{ url_for('confirm_pickup') }}">Confirm a pickup</a></p>
     <p><a href="{{ url_for('logout') }}">Logout</a></p>
 {% endblock %}

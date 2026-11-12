@@ -59,3 +59,7 @@ class PostListingForm(FlaskForm):
         validators=[DataRequired(message='Pickup window end is required')],
     )
     submit = SubmitField('Post')
+
+class PickupForm(FlaskForm):
+    code = StringField('Pickup code', validators=[DataRequired(message='Pickup code is required')])
+    submit = SubmitField('Confirm Pickup')

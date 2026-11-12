@@ -1,6 +1,6 @@
 from app import app, db
 from app.models import Listing, User, Reservation
-from app.forms import PostListingForm, SignUpForm, LoginForm
+from app.forms import PostListingForm, SignUpForm, LoginForm, PickupForm
 from datetime import datetime, timezone
 from flask import abort, render_template, redirect, url_for, request, flash
 from flask_login import login_required, login_user, logout_user, current_user
@@ -169,6 +169,7 @@ def manage_listings():
         .all()
     )
 
+    mark_no_shows()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     return render_template(
         'vendor_listings.html',
@@ -225,6 +226,50 @@ def cancel_listing(listing_id):
     db.session.commit()
         
     return redirect(url_for('home'))
-        
 
+
+def mark_no_shows():
+    # reservations still active after the pickup window ended become no-shows
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    late = Reservation.query.join(Listing).filter(
+        Reservation.status == 'active',
+        Listing.pickup_end < now,
+    ).all()
+    for r in late:
+        r.status = 'no-show'
+    if late:
+        db.session.commit()
+
+@app.route('/vendor/pickup', methods=['GET', 'POST'])
+@login_required
+def confirm_pickup():
+    if current_user.role != 'vendor':
+        abort(403)
+
+    mark_no_shows()
+    form = PickupForm()
+    error = None
+    picked_up = None
+    if form.validate_on_submit():
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        code = form.code.data.strip().upper()
+        r = Reservation.query.filter_by(pickup_code=code).first()
+        if not r:
+            error = 'No reservation has that code.'
+        elif r.listing.vendor_id != current_user.id:
+            error = "That code is for another vendor's listing."
+        elif r.status == 'picked_up':
+            error = 'That code was already used.'
+        elif r.status == 'cancelled':
+            error = 'That reservation was cancelled.'
+        elif r.status == 'no-show':
+            error = 'The pickup window for that reservation has ended.'
+        elif now < r.listing.pickup_start:
+            error = "The pickup window hasn't started yet."
+        else:
+            r.status = 'picked_up'
+            db.session.commit()
+            picked_up = r
+
+    return render_template('confirm_pickup.html', form=form, error=error, picked_up=picked_up)
 
