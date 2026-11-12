@@ -169,15 +169,20 @@ def manage_listings():
         .all()
     )
 
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     return render_template(
         'vendor_listings.html',
-        listings=vendor_listings
+        listings=vendor_listings,
+        now=now
     )
 
 @app.route('/vendor/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_listing(listing_id):
     listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    # vendors can only edit their own listings
+    if listing.vendor_id != current_user.id:
+        abort(403)
     form = PostListingForm(obj=listing) if request.method == 'GET' else PostListingForm()
     if form.validate_on_submit():
         now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -207,11 +212,16 @@ def edit_listing(listing_id):
 @login_required
 def cancel_listing(listing_id):
     current_listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    # vendors can only cancel their own listings
+    if current_listing.vendor_id != current_user.id:
+        abort(403)
     rstmt = select(Reservation).where(Reservation.listing.has(Listing.id == listing_id))
     reservations = db.session.scalars(rstmt).all()
+    # mark as cancelled instead of deleting so it still shows up for the vendor and students
     for reservation in reservations:
-        db.session.delete(reservation)
-    db.session.delete(current_listing)
+        if reservation.status == 'active':
+            reservation.status = 'cancelled'
+    current_listing.cancelled = True
     db.session.commit()
         
     return redirect(url_for('home'))
