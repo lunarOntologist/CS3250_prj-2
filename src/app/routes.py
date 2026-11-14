@@ -240,6 +240,93 @@ def mark_no_shows():
     if late:
         db.session.commit()
 
+
+def parse_date(value, default):
+    """Parse a YYYY-MM-DD string, falling back to ``default`` when invalid."""
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return default
+
+
+def is_no_show(reservation, now):
+    """A reservation counts as a no-show once its pickup window has ended.
+
+    Reservations explicitly marked ``no-show`` always count; still ``active``
+    ones count too once the listing's pickup window is over, matching the
+    status US7 shows on the vendor's listings page.
+    """
+    if reservation.status == 'no-show':
+        return True
+    return reservation.status == 'active' and reservation.listing.pickup_end < now
+
+
+def collect_impact_metrics(vendor_id, start_date, end_date):
+    """Impact metrics for one vendor's listings posted inside a date range.
+
+    Only the given vendor's listings are considered, so one vendor never sees
+    another vendor's data.
+    """
+    start = datetime.combine(start_date, datetime.min.time())
+    end = datetime.combine(end_date, datetime.max.time())
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    listings = Listing.query.filter(
+        Listing.vendor_id == vendor_id,
+        Listing.created_at >= start,
+        Listing.created_at <= end,
+    ).all()
+    listing_ids = [listing.id for listing in listings]
+
+    portions_picked_up = 0
+    no_show_portions = 0
+    reserved_portions = 0
+
+    if listing_ids:
+        reservations = Reservation.query.filter(
+            Reservation.listing_id.in_(listing_ids)
+        ).all()
+        for reservation in reservations:
+            if reservation.status == 'cancelled':
+                # Cancelled reservations release their portions.
+                continue
+            if reservation.status == 'picked_up':
+                portions_picked_up += reservation.portions
+            if is_no_show(reservation, now):
+                no_show_portions += reservation.portions
+            reserved_portions += reservation.portions
+
+    no_show_rate = (no_show_portions / reserved_portions * 100) if reserved_portions else 0.0
+
+    return {
+        'listings_posted': len(listings),
+        'portions_posted': sum(listing.portions_total for listing in listings),
+        'portions_picked_up': portions_picked_up,
+        'no_show_count': no_show_portions,
+        'no_show_rate': round(no_show_rate, 1),
+    }
+
+
+@app.route('/vendor/dashboard')
+@login_required
+def dashboard():
+    if current_user.role != 'vendor':
+        abort(403)
+
+    today = datetime.now(timezone.utc).replace(tzinfo=None).date()
+    start_date = parse_date(request.args.get('start'), today)
+    end_date = parse_date(request.args.get('end'), today)
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
+
+    metrics = collect_impact_metrics(current_user.id, start_date, end_date)
+    return render_template(
+        'dashboard.html',
+        metrics=metrics,
+        start_date=start_date.isoformat(),
+        end_date=end_date.isoformat(),
+    )
+
 @app.route('/vendor/pickup', methods=['GET', 'POST'])
 @login_required
 def confirm_pickup():
