@@ -1,5 +1,5 @@
 from app import app, db
-from app.models import Listing, User, Reservation
+from app.models import Listing, User, Reservation, Rating
 from app.forms import PostListingForm, SignUpForm, LoginForm, PickupForm
 from datetime import datetime, timezone
 from flask import abort, render_template, redirect, url_for, request, flash
@@ -109,6 +109,23 @@ def cancel_reservation(reservation_id):
     db.session.commit()
 
     flash('Your reservation has been cancelled and the portions were returned.', 'success')
+    return redirect(url_for('student_reservations'))
+
+
+@app.route('/reservations/<int:reservation_id>/rate', methods=['POST'])
+@login_required
+def rate_reservation(reservation_id):
+    r = Reservation.query.filter_by(id=reservation_id, student_id=current_user.id).first_or_404()
+    stars = request.form.get('stars', type=int)
+    comment = request.form.get('comment', '').strip()
+    if r.status != 'picked_up' or r.rating:
+        flash('This pickup cannot be rated.', 'danger')
+    elif stars not in range(1, 6) or len(comment) > 300:
+        flash('Pick 1 to 5 stars, comment up to 300 characters.', 'danger')
+    else:
+        db.session.add(Rating(reservation_id=r.id, stars=stars, comment=comment))
+        db.session.commit()
+        flash('Thanks for rating!', 'success')
     return redirect(url_for('student_reservations'))
 
 
