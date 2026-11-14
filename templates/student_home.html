@@ -3,5 +3,6 @@
     <h1>Student Home</h1>
     <p>Welcome, {{ current_user.name }}!</p>
     <p><a href="{{ url_for('listings') }}">Browse available food listings</a></p>
+    <p><a href="{{ url_for('student_reservations') }}">My Reservations</a></p>
     <p><a href="{{ url_for('logout') }}">Logout</a></p>
 {% endblock %}
