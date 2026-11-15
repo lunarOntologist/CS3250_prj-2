@@ -1,0 +1,81 @@
+@startuml sequence-US1
+
+autonumber
+
+actor "New user" as User
+participant "Flask route\n(/register, /login)" as Route
+participant "Form\n(SignUpForm, LoginForm)" as Form
+participant "User model" as UserModel
+database "PostgreSQL\n(users)" as DB
+
+User -> Route: GET /register
+activate Route
+Route -> Form: build SignUpForm()
+Form --> Route: empty form
+Route --> User: render register.html
+deactivate Route
+
+User -> Route: POST /register (name, email, password, role)
+activate Route
+Route -> Form: validate_on_submit()
+activate Form
+Form --> Route: field errors / valid data
+deactivate Form
+
+alt Required field is empty
+    Route --> User: re-render form and identify the empty field
+else Password shorter than 8 characters
+    Route --> User: re-render form with "Password must be at least 8 characters"
+else Email already registered
+    Route -> UserModel: query.filter_by(email=email).first()
+    activate UserModel
+    UserModel -> DB: SELECT * FROM users WHERE email = :email
+    activate DB
+    DB --> UserModel: existing row
+    deactivate DB
+    UserModel --> Route: existing user
+    deactivate UserModel
+    Route --> User: "That email is already registered", no account created
+else Valid unique registration
+    Route -> UserModel: hash password before storing it
+    activate UserModel
+    UserModel -> UserModel: generate_password_hash(password) -> password_hash
+    UserModel --> Route: password_hash (never the plain text)
+    deactivate UserModel
+    Route -> UserModel: User(name, email, password_hash, role)
+    activate UserModel
+    UserModel -> DB: INSERT INTO users (name, email, password_hash, role)
+    activate DB
+    DB --> UserModel: new user id
+    deactivate DB
+    UserModel --> Route: stored user
+    deactivate UserModel
+    Route --> User: redirect to /login
+end
+deactivate Route
+
+User -> Route: POST /login (email, password)
+activate Route
+Route -> UserModel: query.filter_by(email=email).first()
+activate UserModel
+UserModel -> DB: SELECT * FROM users WHERE email = :email
+activate DB
+DB --> UserModel: user row
+deactivate DB
+UserModel --> Route: user
+deactivate UserModel
+
+alt Email unknown or password does not match the stored hash
+    Route -> UserModel: check_password_hash(user.password_hash, password)
+    activate UserModel
+    UserModel --> Route: False
+    deactivate UserModel
+    Route --> User: error and stay logged out
+else Correct credentials
+    Route -> Route: session user id set by login_user(user)
+    note right of Route: The Flask session tracks the logged-in user, and\nprotected pages redirect anonymous visitors to /login
+    Route --> User: redirect to the home page for the user's role\n(vendor_home.html or student_home.html)
+end
+deactivate Route
+
+@enduml
