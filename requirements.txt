@@ -9,3 +9,4 @@ pytest
 selenium
 pytest
 pytest-flask
+tzdata

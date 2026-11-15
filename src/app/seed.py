@@ -1,5 +1,8 @@
 import bcrypt
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+DENVER = ZoneInfo('America/Denver')
 from app import db
 from app.models import User, Listing
 
@@ -13,7 +16,7 @@ def seed():
     db.session.add_all([vendor, student])
     db.session.commit()
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
     food = [
         ('Cheese Pizza', 'Leftover large pizzas', 8, 'Tivoli Cafe', ['vegetarian']),
         ('Veggie Wraps', 'Wraps from lunch', 5, 'Student Union', ['vegan']),

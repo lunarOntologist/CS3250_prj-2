@@ -1,7 +1,10 @@
 from app import app, db
 from app.models import Listing, User, Reservation, Rating
 from app.forms import PostListingForm, SignUpForm, LoginForm, PickupForm
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+DENVER = ZoneInfo('America/Denver')
 from flask import abort, render_template, redirect, url_for, request, flash
 from flask_login import login_required, login_user, logout_user, current_user
 import bcrypt
@@ -58,7 +61,7 @@ def listings():
     if current_user.role != 'student':
         abort(403)
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
 
     available_listings = (
         Listing.query
@@ -122,7 +125,7 @@ def student_reservations():
     if current_user.role != 'student':
         abort(403)
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
     reservations = (
         Reservation.query
         .filter_by(student_id=current_user.id)
@@ -141,7 +144,7 @@ def cancel_reservation(reservation_id):
 
     reservation = Reservation.query.filter_by(id=reservation_id, student_id=current_user.id).first_or_404()
     listing = reservation.listing
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
 
     if reservation.status != 'active' or listing.pickup_end <= now:
         flash('This reservation cannot be cancelled.', 'danger')
@@ -182,7 +185,7 @@ def new_listing():
 
     form = PostListingForm()
     if form.validate_on_submit():
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(DENVER).replace(tzinfo=None)
         if form.pickup_end.data < form.pickup_start.data:
             form.pickup_end.errors.append('Pickup window end must be after its start.')
         elif form.pickup_end.data <= now:
@@ -264,7 +267,7 @@ def reserve_portions(listing_id):
 def _listing_status(listing):
     if listing.cancelled:
         return 'cancelled'
-    if listing.pickup_end <= datetime.now(timezone.utc).replace(tzinfo=None):
+    if listing.pickup_end <= datetime.now(DENVER).replace(tzinfo=None):
         return 'ended'
     return 'active'
 
@@ -283,7 +286,7 @@ def manage_listings():
     )
 
     mark_no_shows()
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
     return render_template(
         'vendor_listings.html',
         listings=vendor_listings,
@@ -303,7 +306,7 @@ def edit_listing(listing_id):
 
     form = PostListingForm(obj=listing) if request.method == 'GET' else PostListingForm()
     if form.validate_on_submit():
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(DENVER).replace(tzinfo=None)
         if form.pickup_end.data < form.pickup_start.data:
             form.pickup_end.errors.append('Pickup window end must be after its start.')
         elif form.pickup_end.data <= now:
@@ -345,7 +348,7 @@ def cancel_listing(listing_id):
 
 def mark_no_shows():
     # reservations still active after the pickup window ended become no-shows
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
     late = Reservation.query.join(Listing).filter(
         Reservation.status == 'active',
         Listing.pickup_end < now,
@@ -384,7 +387,7 @@ def collect_impact_metrics(vendor_id, start_date, end_date):
     """
     start = datetime.combine(start_date, datetime.min.time())
     end = datetime.combine(end_date, datetime.max.time())
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(DENVER).replace(tzinfo=None)
 
     listings = Listing.query.filter(
         Listing.vendor_id == vendor_id,
@@ -428,7 +431,7 @@ def dashboard():
     if current_user.role != 'vendor':
         abort(403)
 
-    today = datetime.now(timezone.utc).replace(tzinfo=None).date()
+    today = datetime.now(DENVER).replace(tzinfo=None).date()
     start_date = parse_date(request.args.get('start'), today)
     end_date = parse_date(request.args.get('end'), today)
     if end_date < start_date:
@@ -453,7 +456,7 @@ def confirm_pickup():
     error = None
     picked_up = None
     if form.validate_on_submit():
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(DENVER).replace(tzinfo=None)
         code = form.code.data.strip().upper()
         r = Reservation.query.filter_by(pickup_code=code).first()
         if not r:

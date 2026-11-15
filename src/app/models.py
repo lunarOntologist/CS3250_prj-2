@@ -2,6 +2,10 @@ import string
 import secrets
 from app import db
 from flask_login import UserMixin
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+DENVER = ZoneInfo('America/Denver')
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
@@ -26,7 +30,7 @@ class Listing(db.Model):
     pickup_start = db.Column(db.DateTime, nullable=False)
     pickup_end = db.Column(db.DateTime, nullable=False)
     cancelled = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(DENVER).replace(tzinfo=None))
 
     vendor = db.relationship('User', back_populates='listings')
     reservations = db.relationship('Reservation', back_populates='listing', lazy=True)
