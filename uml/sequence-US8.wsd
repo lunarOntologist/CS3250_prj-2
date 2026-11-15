@@ -1,0 +1,43 @@
+@startuml sequence-US8
+
+autonumber
+
+actor "Student" as Student
+participant "Flask route\n(/listings)" as Route
+participant "Listing model" as Listing
+database "PostgreSQL\n(listings)" as DB
+
+Student -> Route: GET /listings?tags=vegan,halal&location=Student Union
+activate Route
+Route -> Route: read the selected dietary tags and campus location from the query string
+Route -> Listing: available listings matching every filter
+activate Listing
+Listing -> DB: SELECT * FROM listings\nWHERE cancelled = false AND pickup_end not ended\nAND portions_total - portions_reserved > 0
+activate DB
+DB --> Listing: still available rows
+deactivate DB
+Listing --> Route: filtered in the view: only listings that have ALL selected tags\nand, when chosen, are at the selected campus location,\nsorted by pickup window end
+deactivate Listing
+
+alt No listing matches the filters
+    Route --> Student: empty state "No food listings are currently available."
+else At least one listing matches
+    Route --> Student: the matching listings
+end
+deactivate Route
+
+Student -> Route: GET /listings (Clear filters)
+activate Route
+Route -> Route: drop the tag and location filters
+Route -> Listing: available listings with no filter
+activate Listing
+Listing -> DB: SELECT * FROM listings\nWHERE cancelled = false AND pickup_end not ended\nAND portions_total - portions_reserved > 0\nORDER BY pickup_end ASC
+activate DB
+DB --> Listing: every available listing
+deactivate DB
+Listing --> Route: unfiltered listings
+deactivate Listing
+Route --> Student: all available listings are shown again
+deactivate Route
+
+@enduml
