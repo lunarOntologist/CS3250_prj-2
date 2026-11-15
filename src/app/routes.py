@@ -51,6 +51,7 @@ def home():
         return render_template('vendor_home.html')
     return render_template('student_home.html')
 
+
 @app.route('/listings')
 @login_required
 def listings():
@@ -58,6 +59,7 @@ def listings():
         abort(403)
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
+
     available_listings = (
         Listing.query
         .filter(
@@ -68,7 +70,50 @@ def listings():
         .order_by(Listing.pickup_end.asc(), Listing.id.asc())
         .all()
     )
-    return render_template('listings.html', listings=available_listings)
+
+    # Get available filter options
+    allowed_tags = {
+        value for value, label in PostListingForm().dietary_tags.choices
+    }
+
+    selected_tags = [
+        tag for tag in request.args.getlist('dietary_tags')
+        if tag in allowed_tags
+    ]
+
+    available_locations = sorted({
+        listing.pickup_location
+        for listing in available_listings
+        if listing.pickup_location
+    })
+
+    selected_location = request.args.get('pickup_location', '')
+
+    if selected_location not in available_locations:
+        selected_location = ''
+
+    # Apply filters
+    filtered_listings = available_listings
+
+    if selected_tags:
+        filtered_listings = [
+            listing for listing in filtered_listings
+            if all(tag in (listing.dietary_tags or []) for tag in selected_tags)
+        ]
+
+    if selected_location:
+        filtered_listings = [
+            listing for listing in filtered_listings
+            if listing.pickup_location == selected_location
+        ]
+
+    return render_template(
+        'listings.html',
+        listings=filtered_listings,
+        selected_tags=selected_tags,
+        available_locations=available_locations,
+        selected_location=selected_location,
+    )
 
 
 @app.route('/reservations')

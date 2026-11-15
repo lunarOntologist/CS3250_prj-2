@@ -1,8 +1,10 @@
+
 {% extends 'base.html' %}
 {% block main %}
     <h1>Available Food</h1>
     <p><a href="{{ url_for('home') }}">Student Home</a></p>
 
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -10,6 +12,51 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
+
+    <!-- US8: Filter Listings -->
+    <section>
+        <h2>Filter Listings</h2>
+
+        <form method="GET" action="{{ url_for('listings') }}">
+            <fieldset>
+                <legend>Dietary Requirements</legend>
+
+                {% for tag, label in [
+                    ('vegetarian', 'Vegetarian'),
+                    ('vegan', 'Vegan'),
+                    ('gluten-free', 'Gluten-free'),
+                    ('halal', 'Halal'),
+                    ('contains nuts', 'Contains nuts')
+                ] %}
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="dietary_tags"
+                            value="{{ tag }}"
+                            {% if tag in selected_tags %}checked{% endif %}
+                        >
+                        {{ label }}
+                    </label><br>
+                {% endfor %}
+            </fieldset>
+
+            <label for="pickup_location">Pickup Location:</label>
+            <select name="pickup_location" id="pickup_location">
+                <option value="">All Locations</option>
+                {% for location in available_locations %}
+                    <option value="{{ location }}"
+                        {% if location == selected_location %}selected{% endif %}>
+                        {{ location }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">Apply Filters</button>
+            <a href="{{ url_for('listings') }}">Clear Filters</a>
+        </form>
+    </section>
+
+    <h2>Available Listings</h2>
 
     {% if listings %}
         <table>
@@ -33,7 +80,6 @@
                         <td>{{ listing.dietary_tags|join(', ') if listing.dietary_tags else 'None' }}</td>
                         <td>{{ listing.portions_total - listing.portions_reserved }}</td>
                         <td>{{ listing.pickup_start.strftime('%Y-%m-%d %H:%M') }} to {{ listing.pickup_end.strftime('%Y-%m-%d %H:%M') }}</td>
-                        
                         <td>
                             <form action="{{ url_for('reserve_portions', listing_id=listing.id) }}" method="POST" style="display: flex; gap: 6px; align-items: center;">
                                 <select name="portions">
@@ -48,7 +94,7 @@
             </tbody>
         </table>
     {% else %}
-        <p>No food listings are currently available.</p>
+        <p>No food listings match your selected filters.</p>
     {% endif %}
 
     <p><a href="{{ url_for('logout') }}">Logout</a></p>
