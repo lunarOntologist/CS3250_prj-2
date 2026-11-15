@@ -230,11 +230,7 @@ Write one automated black box test with Selenium for one user story of your choi
 * Automated test: place it in tests/ and make it cover every acceptance criterion of the chosen story, including at least one failure case (for example a duplicate email for US1, or reserving more portions than remain for US4). The test drives the app through the browser against the running Docker Compose deployment; it must not call your Python functions directly. Explain in the README how to run it.
 * Manual tests: for every other implemented story, test each acceptance criterion by hand and record the results in tests/manual-tests.md using this table. Re-test stories from earlier sprints before each release.
 
-| User story | Acceptance criterion | Tester | Date | Result | Notes |
-| --- | --- | --- | --- | --- | --- |
-| US1 | 2: duplicate email rejected | Name | 99/99/26 | passed |  |
-| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/6/2026 | Failed | ... |
-| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/6/2026 | Passed | I had to make it loop through reservations |
+
 
 # Repository Structure
 
