@@ -239,6 +239,18 @@ Write one automated black box test with Selenium for one user story of your choi
 | US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/06/2026 | Passed | I had to make it loop through reservations |
 | US6 | Student cancels an active reservation and the portions are returned to the listing | Nikki | 11/12/26 | Passed |  |
 
+## Running the Selenium test
+
+The Selenium test is in tests/test_selenium.py and covers US1 to US6. It uses Firefox, so have Firefox installed.
+
+1. Start the app: `docker compose up --build`
+2. In another terminal, install the packages: `pip install -r requirements.txt`
+3. Run the test: `pytest tests/test_selenium.py`
+
+It goes to http://localhost:5000 by default. To use a different address, set `CAMPUS_EATS_URL` first.
+
+All manual test results are in tests/manual-tests.md.
+
 # Repository Structure
 
 ```
