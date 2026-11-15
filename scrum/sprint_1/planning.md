@@ -54,9 +54,19 @@ The following estimates were shared by the team on a 1–5 story-point scale. Es
 
 \*\*Estimation approach:\*\* For initial planning, the conservative estimate uses the highest estimate submitted for each story. This avoids underestimating work while the team works toward a shared estimate. These values are provisional, not final team-agreed estimates.
 
+## Product Backlog Prioritization
+
+| Priority | User Stories | Reason |
+|---|---|---|
+| High | US1, US2, US3, US4, US6, US7 | Required functionality needed for the core CampusEats experience. Several stories depend on earlier functionality. |
+| Medium | US5, US8 | Important vendor management and listing filtering functionality. |
+| Low | US9, US10 | Additional functionality that extends the application beyond its core requirements. |
+
+The backlog prioritizes essential application functionality and dependencies first, followed by additional features that improve the overall user experience.
 
 
-\## Proposed Sprint 1 Backlog
+
+## Proposed Sprint 1 Backlog
 
 
 
@@ -134,5 +144,13 @@ A story is considered done when:
 
 \- Review the plan as implementation progresses and adjust scope when necessary.
 
+## Proposed Release Plan
 
+| Release | Planned User Stories | Focus |
+|---|---|---|
+| Sprint 1 | US1, US2, US3 | Establish user accounts, listing creation, and listing browsing. |
+| Sprint 2 | US2, US3, US5 | Continue core listing functionality and implement vendor listing management. |
+| Sprint 3 | US6, US7, US8, US9, US10 | Complete reservations and pickup functionality while adding optional features. |
+
+The release plan organizes development around core application functionality, dependencies, and additional features. Stories were distributed across the sprints to support incremental implementation, testing, and integration.
 
