@@ -1,11 +1,10 @@
 from app import app, db
-from app.models import Listing, User, Reservation
+from app.models import Listing, User, Reservation, Rating
 from app.forms import PostListingForm, SignUpForm, LoginForm, PickupForm
 from datetime import datetime, timezone
 from flask import abort, render_template, redirect, url_for, request, flash
 from flask_login import login_required, login_user, logout_user, current_user
 import bcrypt
-from sqlalchemy import select
 
 @app.route('/')
 def index():
@@ -52,6 +51,7 @@ def home():
         return render_template('vendor_home.html')
     return render_template('student_home.html')
 
+
 @app.route('/listings')
 @login_required
 def listings():
@@ -59,6 +59,7 @@ def listings():
         abort(403)
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
+
     available_listings = (
         Listing.query
         .filter(
@@ -69,7 +70,109 @@ def listings():
         .order_by(Listing.pickup_end.asc(), Listing.id.asc())
         .all()
     )
-    return render_template('listings.html', listings=available_listings)
+
+    # Get available filter options
+    allowed_tags = {
+        value for value, label in PostListingForm().dietary_tags.choices
+    }
+
+    selected_tags = [
+        tag for tag in request.args.getlist('dietary_tags')
+        if tag in allowed_tags
+    ]
+
+    available_locations = sorted({
+        listing.pickup_location
+        for listing in available_listings
+        if listing.pickup_location
+    })
+
+    selected_location = request.args.get('pickup_location', '')
+
+    if selected_location not in available_locations:
+        selected_location = ''
+
+    # Apply filters
+    filtered_listings = available_listings
+
+    if selected_tags:
+        filtered_listings = [
+            listing for listing in filtered_listings
+            if all(tag in (listing.dietary_tags or []) for tag in selected_tags)
+        ]
+
+    if selected_location:
+        filtered_listings = [
+            listing for listing in filtered_listings
+            if listing.pickup_location == selected_location
+        ]
+
+    return render_template(
+        'listings.html',
+        listings=filtered_listings,
+        selected_tags=selected_tags,
+        available_locations=available_locations,
+        selected_location=selected_location,
+    )
+
+
+@app.route('/reservations')
+@login_required
+def student_reservations():
+    if current_user.role != 'student':
+        abort(403)
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    reservations = (
+        Reservation.query
+        .filter_by(student_id=current_user.id)
+        .join(Listing)
+        .order_by(Listing.pickup_end.asc(), Reservation.id.asc())
+        .all()
+    )
+    return render_template('student_reservations.html', reservations=reservations, now=now)
+
+
+@app.route('/reservations/<int:reservation_id>/cancel', methods=['POST'])
+@login_required
+def cancel_reservation(reservation_id):
+    if current_user.role != 'student':
+        abort(403)
+
+    reservation = Reservation.query.filter_by(id=reservation_id, student_id=current_user.id).first_or_404()
+    listing = reservation.listing
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    if reservation.status != 'active' or listing.pickup_end <= now:
+        flash('This reservation cannot be cancelled.', 'danger')
+        return redirect(url_for('student_reservations'))
+
+    reservation.status = 'cancelled'
+    listing.portions_reserved -= reservation.portions
+    db.session.add(reservation)
+    db.session.add(listing)
+    db.session.commit()
+
+    flash('Your reservation has been cancelled and the portions were returned.', 'success')
+    return redirect(url_for('student_reservations'))
+
+
+@app.route('/reservations/<int:reservation_id>/rate', methods=['POST'])
+@login_required
+def rate_reservation(reservation_id):
+    r = Reservation.query.filter_by(id=reservation_id, student_id=current_user.id).first_or_404()
+    stars = request.form.get('stars', type=int)
+    comment = request.form.get('comment', '').strip()
+    if r.status != 'picked_up' or r.rating:
+        flash('This pickup cannot be rated.', 'danger')
+    elif stars not in range(1, 6) or len(comment) > 300:
+        flash('Pick 1 to 5 stars, comment up to 300 characters.', 'danger')
+    else:
+        db.session.add(Rating(reservation_id=r.id, stars=stars, comment=comment))
+        db.session.commit()
+        flash('Thanks for rating!', 'success')
+    return redirect(url_for('student_reservations'))
+
 
 @app.route('/listings/new', methods=['GET', 'POST'])
 @login_required
@@ -156,6 +259,16 @@ def reserve_portions(listing_id):
     flash(f"Reservation successful! Your pickup code is: {code}", "success")
     return redirect(url_for('listings'))
 
+
+
+def _listing_status(listing):
+    if listing.cancelled:
+        return 'cancelled'
+    if listing.pickup_end <= datetime.now(timezone.utc).replace(tzinfo=None):
+        return 'ended'
+    return 'active'
+
+
 @app.route('/vendor/listings')
 @login_required
 def manage_listings():
@@ -177,13 +290,17 @@ def manage_listings():
         now=now
     )
 
+
 @app.route('/vendor/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_listing(listing_id):
     listing = Listing.query.filter_by(id=listing_id).first_or_404()
-    # vendors can only edit their own listings
     if listing.vendor_id != current_user.id:
         abort(403)
+    if listing.cancelled:
+        flash('Cancelled listings cannot be edited.', 'danger')
+        return redirect(url_for('manage_listings'))
+
     form = PostListingForm(obj=listing) if request.method == 'GET' else PostListingForm()
     if form.validate_on_submit():
         now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -194,39 +311,37 @@ def edit_listing(listing_id):
         elif form.portions_total.data < listing.portions_reserved:
             form.portions_total.errors.append('Total portions cannot be less than reserved portions.')
         else:
-            
-                listing.title = form.title.data
-                listing.description = form.description.data
-                listing.portions_total = form.portions_total.data
-                listing.pickup_location = form.pickup_location.data
-                listing.dietary_tags = form.dietary_tags.data
-                listing.pickup_start = form.pickup_start.data
-                listing.pickup_end = form.pickup_end.data
-                
-                db.session.add(listing)
-                db.session.commit()
-                return redirect(url_for('home'))
-        
+            listing.title = form.title.data
+            listing.description = form.description.data
+            listing.portions_total = form.portions_total.data
+            listing.pickup_location = form.pickup_location.data
+            listing.dietary_tags = form.dietary_tags.data
+            listing.pickup_start = form.pickup_start.data
+            listing.pickup_end = form.pickup_end.data
+
+            db.session.add(listing)
+            db.session.commit()
+            return redirect(url_for('manage_listings'))
+
     return render_template('listing_form.html', form=form)
+
 
 @app.route('/vendor/listings/<int:listing_id>/cancel', methods=['GET', 'POST'])
 @login_required
 def cancel_listing(listing_id):
     current_listing = Listing.query.filter_by(id=listing_id).first_or_404()
-    # vendors can only cancel their own listings
     if current_listing.vendor_id != current_user.id:
         abort(403)
-    rstmt = select(Reservation).where(Reservation.listing.has(Listing.id == listing_id))
-    reservations = db.session.scalars(rstmt).all()
-    # mark as cancelled instead of deleting so it still shows up for the vendor and students
-    for reservation in reservations:
+
+    current_listing.cancelled = True
+    for reservation in current_listing.reservations:
         if reservation.status == 'active':
             reservation.status = 'cancelled'
-    current_listing.cancelled = True
-    db.session.commit()
-        
-    return redirect(url_for('home'))
 
+    db.session.add(current_listing)
+    db.session.commit()
+
+    return redirect(url_for('manage_listings'))
 
 def mark_no_shows():
     # reservations still active after the pickup window ended become no-shows

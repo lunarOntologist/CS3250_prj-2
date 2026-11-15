@@ -1,0 +1,33 @@
+@startuml sequence-US3
+
+autonumber
+
+actor "Student" as Student
+participant "Flask route\n(/listings)" as Route
+participant "Listing model" as Listing
+database "PostgreSQL\n(listings, reservations)" as DB
+
+Student -> Route: GET /listings
+activate Route
+Route -> Route: check current_user.role == 'student'
+alt Logged in as a vendor
+    Route --> Student: 403 access denied
+else Logged in as a student
+    Route -> Listing: available listings for now
+    activate Listing
+    Listing -> DB: SELECT * FROM listings\nWHERE cancelled = false\nAND pickup_end not ended\nAND portions_total - portions_reserved > 0\nORDER BY pickup_end ASC, id ASC
+    activate DB
+    DB --> Listing: only still available rows, soonest pickup window end first
+    deactivate DB
+    Listing --> Route: listings sorted by pickup window end
+    deactivate Listing
+
+    alt No listing is available
+        Route --> Student: empty state "No food listings are currently available."
+    else At least one listing is available
+        Route --> Student: table with title, vendor name, pickup location,\ndietary tags, portions remaining and pickup window
+    end
+end
+deactivate Route
+
+@enduml

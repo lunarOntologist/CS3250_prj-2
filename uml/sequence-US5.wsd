@@ -1,0 +1,100 @@
+@startuml sequence-US5
+
+autonumber
+
+actor "Vendor" as Vendor
+participant "Flask routes\n(/vendor/listings, .../edit, .../cancel)" as Route
+participant "PostListingForm" as Form
+participant "Listing model" as Listing
+participant "Reservation model" as Reservation
+database "PostgreSQL\n(listings, reservations)" as DB
+
+Vendor -> Route: GET /vendor/listings
+activate Route
+Route -> Listing: filter_by(vendor_id=current_user.id)\n.order_by(pickup_end)
+activate Listing
+Listing -> DB: SELECT * FROM listings WHERE vendor_id = :vid ORDER BY pickup_end
+activate DB
+DB --> Listing: only the vendor's own listings
+deactivate DB
+Listing --> Route: listings with their reservations
+deactivate Listing
+Route -> Route: mark_no_shows(): active reservations past their\npickup window become "no-show"
+Route --> Vendor: each listing with status (active / ended / cancelled)\nand portions reserved and remaining, plus reserving students
+deactivate Route
+
+Vendor -> Route: POST /vendor/listings/{id}/edit (title, portions, window, ...)
+activate Route
+Route -> Listing: query.filter_by(id=listing_id).first_or_404()
+activate Listing
+Listing -> DB: SELECT * FROM listings WHERE id = :id
+activate DB
+DB --> Listing: listing row
+deactivate DB
+Listing --> Route: listing
+deactivate Listing
+
+alt Listing belongs to another vendor
+    Route --> Vendor: 403 access denied, nothing changed
+else Own listing
+    Route -> Form: validate_on_submit()
+    activate Form
+    Form --> Route: field errors / valid data
+    deactivate Form
+
+    alt Validation fails (same rules as US2)
+        Route --> Vendor: re-render form with errors, nothing saved
+    else New portions total below the portions already reserved
+        Route --> Vendor: error "Total portions cannot be less than reserved portions."
+    else Valid edit
+        Route -> Listing: assign the new field values
+        activate Listing
+        Listing -> DB: UPDATE listings SET title = ..., portions_total = ... WHERE id = :id
+        activate DB
+        DB --> Listing: updated row
+        deactivate DB
+        Listing --> Route: changes stored
+        deactivate Listing
+        Route --> Vendor: redirect to the vendor home page
+    end
+end
+deactivate Route
+
+Vendor -> Route: POST /vendor/listings/{id}/cancel
+activate Route
+Route -> Listing: query.filter_by(id=listing_id).first_or_404()
+activate Listing
+Listing --> Route: listing
+deactivate Listing
+alt Listing belongs to another vendor
+    Route --> Vendor: 403 access denied
+else Own listing
+    Route -> Reservation: all reservations of the listing
+    activate Reservation
+    Reservation -> DB: SELECT * FROM reservations WHERE listing_id = :id
+    activate DB
+    DB --> Reservation: reservation rows
+    deactivate DB
+    loop every reservation
+        alt Reservation status is active
+            Reservation -> DB: UPDATE reservations SET status = 'cancelled' WHERE id = :id
+        else Already picked up / cancelled / no-show
+            Reservation -> Reservation: leave the status untouched
+        end
+    end
+    Reservation --> Route: active reservations cancelled
+    deactivate Reservation
+
+    Route -> Listing: cancelled = true
+    activate Listing
+    Listing -> DB: UPDATE listings SET cancelled = true WHERE id = :id
+    activate DB
+    DB --> Listing: listing no longer shown to students
+    deactivate DB
+    Listing --> Route: cancelled
+    deactivate Listing
+    Route --> Vendor: redirect, listing stays visible to the vendor as "Cancelled"
+end
+deactivate Route
+
+@enduml

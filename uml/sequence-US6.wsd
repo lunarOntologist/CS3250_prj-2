@@ -1,0 +1,63 @@
+@startuml sequence-US6
+
+autonumber
+
+actor "Student" as Student
+participant "Flask routes\n(/reservations, .../cancel)" as Route
+participant "Reservation model" as Reservation
+participant "Listing model" as Listing
+database "PostgreSQL\n(reservations, listings)" as DB
+
+Student -> Route: GET /reservations
+activate Route
+Route -> Reservation: filter_by(student_id=current_user.id)
+activate Reservation
+Reservation -> DB: SELECT * FROM reservations WHERE student_id = :sid
+activate DB
+DB --> Reservation: the student's own reservations only
+deactivate DB
+Reservation --> Route: reservations with their listing and vendor
+deactivate Reservation
+Route --> Student: each reservation with listing title, vendor, location,\npickup window, portions, pickup code and status\n(active, picked up, cancelled, no-show)
+deactivate Route
+
+Student -> Route: POST /reservations/{id}/cancel
+activate Route
+Route -> Reservation: query.filter_by(id=reservation_id).first_or_404()
+activate Reservation
+Reservation -> DB: SELECT * FROM reservations WHERE id = :id
+activate DB
+DB --> Reservation: reservation row
+deactivate DB
+Reservation --> Route: reservation
+deactivate Reservation
+
+alt Reservation belongs to another student
+    Route --> Student: 403 access denied
+else Reservation status is not active
+    Route --> Student: error, no "Cancel" option is offered for it
+else Pickup window has already ended
+    Route --> Student: error, the reservation cannot be cancelled any more
+else Reservation is active and its window is still open
+    Route -> Reservation: status = 'cancelled'
+    activate Reservation
+    Reservation -> DB: UPDATE reservations SET status = 'cancelled' WHERE id = :id
+    activate DB
+    DB --> Reservation: status updated
+    deactivate DB
+    Reservation --> Route: cancelled
+    deactivate Reservation
+
+    Route -> Listing: portions_reserved -= reservation.portions
+    activate Listing
+    Listing -> DB: UPDATE listings SET portions_reserved = portions_reserved - :portions
+    activate DB
+    DB --> Listing: portions returned to the listing
+    deactivate DB
+    Listing --> Route: updated listing
+    deactivate Listing
+    Route --> Student: success message and the reservation is cancelled
+end
+deactivate Route
+
+@enduml

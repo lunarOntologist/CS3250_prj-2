@@ -40,6 +40,12 @@
                 {% else %}
                     <p>No reservations yet.</p>
                 {% endif %}
+
+                {% set ratings = listing.reservations|map(attribute='rating')|select|list %}
+                {% if ratings %}
+                    <p>Average rating: {{ '%.1f'|format(ratings|sum(attribute='stars') / ratings|length) }}/5</p>
+                    {% for rt in ratings if rt.comment %}<p>"{{ rt.comment }}"</p>{% endfor %}
+                {% endif %}
             </section>
         {% endfor %}
     {% else %}

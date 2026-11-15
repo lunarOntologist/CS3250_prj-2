@@ -44,6 +44,7 @@ class Reservation(db.Model):
 
     student = db.relationship('User', back_populates='reservations')
     listing = db.relationship('Listing', back_populates='reservations')
+    rating = db.relationship('Rating', uselist=False)
 
     @classmethod
     def generate_pickup_code(cls):
@@ -52,3 +53,11 @@ class Reservation(db.Model):
             code = ''.join(secrets.choice(alphabet) for _ in range(6))
             if not cls.query.filter_by(pickup_code=code).first():
                 return code
+
+
+class Rating(db.Model):
+    __tablename__ = 'ratings'
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(db.Integer, db.ForeignKey('reservations.id'), unique=True, nullable=False)
+    stars = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.String(300))
