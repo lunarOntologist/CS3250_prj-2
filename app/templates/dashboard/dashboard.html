@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Vendor Dashboard</h1>
+        <nav>
+            <a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </nav>
+    </header>
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <h2>Listing Summary ({{ start_date }} to {{ end_date }})</h2>
+            <div class="stats">
+                <p>Total Listings: <strong>{{ total_listings }}</strong></p>
+                <p>Posted: <strong>{{ total_posted }}</strong></p>
+                <p>Picked Up: <strong>{{ total_picked_up }}</strong></p>
+                <p>No-Show Count: <strong>{{ total_no_show }}</strong></p>
+                <p>Reserved Portions: <strong>{{ total_reserved }}</strong></p>
+                <p>No-Show Rate: <strong>{{ no_show_rate }}</strong></p>
+            </div>
+        </div>
+
+        {% if listings %}
+        <div class="card table-wrapper">
+            <h3>Listings</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Posted Date</th>
+                        <th>Is Posted</th>
+                        <th>Reserved</th>
+                        <th>Picked Up</th>
+                        <th>No-Show Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for listing in listings %}
+                    <tr>
+                        <td>{{ listing.title }}</td>
+                        <td>{{ listing.posted_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ 'Yes' if listing.is_posted else 'No' }}</td>
+                        <td>{{ listing.reserved_portions }}</td>
+                        <td>{{ listing.picked_up_portions }}</td>
+                        <td>{{ listing.no_show_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card empty-state">
+            <p>No listings found for the selected date range.</p>
+        </div>
+        {% endif %}
+
+    </main>
+</body>
+</html>

@@ -26,6 +26,7 @@ class Listing(db.Model):
     pickup_start = db.Column(db.DateTime, nullable=False)
     pickup_end = db.Column(db.DateTime, nullable=False)
     cancelled = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
 
     vendor = db.relationship('User', back_populates='listings')
     reservations = db.relationship('Reservation', back_populates='listing', lazy=True)
