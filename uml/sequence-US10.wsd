@@ -1,0 +1,83 @@
+@startuml sequence-US10
+
+autonumber
+
+actor "Student" as Student
+actor "Vendor" as Vendor
+participant "Flask routes\n(/reservations/{id}/rate, /listings/{id})" as Route
+participant "Rating model" as Rating
+participant "Reservation model" as Reservation
+database "PostgreSQL\n(ratings, reservations)" as DB
+
+Student -> Route: GET /reservations
+activate Route
+Route -> Reservation: filter_by(student_id=current_user.id)
+activate Reservation
+Reservation -> DB: SELECT * FROM reservations WHERE student_id = :sid
+activate DB
+DB --> Reservation: the student's own reservations
+deactivate DB
+Reservation --> Route: reservations
+deactivate Reservation
+Route --> Student: only reservations with status "picked up" offer a rating form\n(1 to 5 stars, optional comment up to 300 characters)
+deactivate Route
+
+Student -> Route: POST /reservations/{id}/rate (stars, comment)
+activate Route
+Route -> Reservation: query.filter_by(id=reservation_id).first_or_404()
+activate Reservation
+Reservation -> DB: SELECT * FROM reservations WHERE id = :id
+activate DB
+DB --> Reservation: reservation row
+deactivate DB
+Reservation --> Route: reservation
+deactivate Reservation
+
+alt Reservation belongs to another student
+    Route --> Student: 403 access denied
+else Reservation status is not "picked up"
+    Route --> Student: error, only picked-up reservations can be rated
+else Stars outside 1 to 5 or comment longer than 300 characters
+    Route --> Student: error with the invalid field, no rating stored
+else This reservation already has a rating
+    Route -> Rating: filter_by(reservation_id=reservation_id).first()
+    activate Rating
+    Rating -> DB: SELECT * FROM ratings WHERE reservation_id = :id
+    activate DB
+    DB --> Rating: existing rating
+    deactivate DB
+    Rating --> Route: rating
+    deactivate Rating
+    Route --> Student: error, a picked-up reservation can be rated only once
+else Valid rating
+    Route -> Rating: Rating(reservation_id, stars, comment)
+    activate Rating
+    Rating -> DB: INSERT INTO ratings (reservation_id, stars, comment)
+    activate DB
+    DB --> Rating: rating id
+    deactivate DB
+    Rating --> Route: rating stored and linked to the reservation
+    deactivate Rating
+    Route --> Student: success message
+end
+deactivate Route
+
+Vendor -> Route: GET /listings/{id}
+activate Route
+Route -> Route: check the listing belongs to current_user
+alt Not the owner
+    Route --> Vendor: 403 access denied
+else Owner
+    Route -> Rating: ratings for this listing's reservations
+    activate Rating
+    Rating -> DB: SELECT r.* FROM ratings r\nJOIN reservations res ON res.id = r.reservation_id\nWHERE res.listing_id = :id
+    activate DB
+    DB --> Rating: rating rows
+    deactivate DB
+    Rating --> Route: ratings with their comments
+    deactivate Rating
+    Route --> Vendor: average rating and the comments for the listing
+end
+deactivate Route
+
+@enduml

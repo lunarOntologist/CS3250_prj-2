@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Impact Dashboard</h1>
+    <p><a href="{{ url_for('home') }}">Vendor Home</a></p>
+
+    <form method="GET">
+        <p>
+            <label for="start">Start date</label>
+            <input type="date" id="start" name="start" value="{{ start_date }}">
+        </p>
+        <p>
+            <label for="end">End date</label>
+            <input type="date" id="end" name="end" value="{{ end_date }}">
+        </p>
+        <p><button type="submit" class="create_button">Show impact</button></p>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="odd_row">
+                <td>Listings posted</td>
+                <td>{{ metrics.listings_posted }}</td>
+            </tr>
+            <tr class="even_row">
+                <td>Portions posted</td>
+                <td>{{ metrics.portions_posted }}</td>
+            </tr>
+            <tr class="odd_row">
+                <td>Portions picked up</td>
+                <td>{{ metrics.portions_picked_up }}</td>
+            </tr>
+            <tr class="even_row">
+                <td>No-show count</td>
+                <td>{{ metrics.no_show_count }}</td>
+            </tr>
+            <tr class="odd_row">
+                <td>No-show rate</td>
+                <td>{{ metrics.no_show_rate }}%</td>
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Post a Food Listing</h1>
+    <p><a href="{{ url_for('home') }}">Vendor Home</a></p>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <p>{{ form.title.label }}<br>{{ form.title() }}
+            {% for error in form.title.errors %}<br><span class="error">{{ error }}</span>{% endfor %}</p>
+        <p>{{ form.description.label }}<br>{{ form.description() }}
+            {% for error in form.description.errors %}<br><span class="error">{{ error }}</span>{% endfor %}</p>
+        <p>{{ form.portions_total.label }}<br>{{ form.portions_total(min=1, max=100) }}
+            {% for error in form.portions_total.errors %}<br><span class="error">{{ error }}</span>{% endfor %}</p>
+        <p>{{ form.pickup_location.label }}<br>{{ form.pickup_location() }}
+            {% for error in form.pickup_location.errors %}<br><span class="error">{{ error }}</span>{% endfor %}</p>
+        <fieldset>
+            <legend>{{ form.dietary_tags.label.text }}</legend>
+            {% for value, label in form.dietary_tags.choices %}
+                <label>
+                    <input type="checkbox" name="{{ form.dietary_tags.name }}" value="{{ value }}"
+                           {% if value in (form.dietary_tags.data or []) %}checked{% endif %}>
+                    {{ label }}
+                </label>
+            {% endfor %}
+            {% for error in form.dietary_tags.errors %}<span class="error">{{ error }}</span>{% endfor %}
+        </fieldset>
+        <p>{{ form.pickup_start.label }}<br>{{ form.pickup_start() }}
+            {% for error in form.pickup_start.errors %}<br><span class="error">{{ error }}</span>{% endfor %}</p>
+        <p>{{ form.pickup_end.label }}<br>{{ form.pickup_end() }}
+            {% for error in form.pickup_end.errors %}<br><span class="error">{{ error }}</span>{% endfor %}</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Post Food</h1>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form action="" method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <p>{{ form.name.label }} <br> {{ form.name(size=30) }}
+            {% for e in form.name.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.description.label }} <br> {{ form.description(size=30) }}
+            {% for e in form.description.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.location.label }} <br> {{ form.location(size=30) }}
+            {% for e in form.location.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.tags.label }} <br> {{ form.tags(size=30) }}
+            {% for e in form.tags.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.portions.label }} <br> {{ form.portions(min=1, max=100) }}
+            {% for e in form.portions.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.starttime.label }} <br> {{ form.starttime() }}
+            {% for e in form.starttime.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.endtime.label }} <br> {{ form.endtime() }}
+            {% for e in form.endtime.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p><input type="submit" value="Post" class="create_button"></p>
+    </form>
+    <p><a href="{{ url_for('home') }}">Back to home</a></p>
+{% endblock %}

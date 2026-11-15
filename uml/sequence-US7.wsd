@@ -1,0 +1,73 @@
+@startuml sequence-US7
+
+autonumber
+
+actor "Vendor" as Vendor
+participant "Flask route\n(/vendor/pickup)" as Route
+participant "PickupForm" as Form
+participant "Reservation model" as Reservation
+participant "Listing model" as Listing
+database "PostgreSQL\n(reservations, listings)" as DB
+
+Vendor -> Route: GET /vendor/pickup
+activate Route
+Route -> Route: mark_no_shows(): active reservations past\ntheir pickup window end become "no-show"
+activate Reservation
+Reservation -> DB: UPDATE reservations SET status = 'no-show'\nWHERE status = 'active' AND listing pickup_end < now
+activate DB
+DB --> Reservation: ended windows updated
+deactivate DB
+deactivate Reservation
+Route --> Vendor: pickup form plus reservations now shown as no-show
+deactivate Route
+
+Vendor -> Route: POST /vendor/pickup (pickup code)
+activate Route
+Route -> Form: validate_on_submit()
+activate Form
+Form --> Route: field errors / code
+deactivate Form
+
+alt Code field left empty
+    Route --> Vendor: re-render form asking for the pickup code
+else Code submitted
+    Route -> Reservation: filter_by(pickup_code=code).first()
+    activate Reservation
+    Reservation -> DB: SELECT * FROM reservations WHERE pickup_code = :code
+    activate DB
+    DB --> Reservation: reservation row / none
+    deactivate DB
+    Reservation --> Route: reservation / None
+    deactivate Reservation
+
+    alt Code does not exist
+        Route --> Vendor: error "No reservation has that code."
+    else Reservation belongs to another vendor's listing
+        Route -> Listing: reservation.listing.vendor_id != current_user.id
+        activate Listing
+        Listing --> Route: different vendor
+        deactivate Listing
+        Route --> Vendor: error "That code is for another vendor's listing."
+    else Code was already used
+        Route --> Vendor: error "That code was already used."
+    else Reservation was cancelled
+        Route --> Vendor: error "That reservation was cancelled."
+    else Reservation is a no-show (window ended)
+        Route --> Vendor: error "The pickup window for that reservation has ended."
+    else Pickup window has not started yet
+        Route --> Vendor: error "The pickup window hasn't started yet."
+    else Active reservation during its pickup window
+        Route -> Reservation: status = 'picked_up'
+        activate Reservation
+        Reservation -> DB: UPDATE reservations SET status = 'picked_up' WHERE id = :id
+        activate DB
+        DB --> Reservation: status updated
+        deactivate DB
+        Reservation --> Route: picked up
+        deactivate Reservation
+        Route --> Vendor: student name and portions to hand out
+    end
+end
+deactivate Route
+
+@enduml

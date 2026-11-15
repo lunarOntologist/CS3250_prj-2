@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Confirm Pickup</h1>
+    <p><a href="{{ url_for('home') }}">Vendor Home</a></p>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    {% if picked_up %}
+        <p class="alert-success">Pickup confirmed! Give {{ picked_up.student.name }} {{ picked_up.portions }} portion(s) of {{ picked_up.listing.title }}.</p>
+    {% endif %}
+
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <p>{{ form.code.label }}<br>{{ form.code(size=10, maxlength=6) }}
+            {% for e in form.code.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %}

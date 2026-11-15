@@ -1,0 +1,47 @@
+@startuml sequence-US9
+
+autonumber
+
+actor "Vendor" as Vendor
+participant "Flask route\n(/vendor/dashboard)" as Route
+participant "Listing model" as Listing
+participant "Reservation model" as Reservation
+database "PostgreSQL\n(listings, reservations)" as DB
+
+Vendor -> Route: GET /vendor/dashboard?start=YYYY-MM-DD&end=YYYY-MM-DD
+activate Route
+Route -> Route: check current_user.role == 'vendor'
+alt Logged in as a student
+    Route --> Vendor: 403 access denied
+else Logged in as a vendor
+    Route -> Route: parse the date range, falling back to today when a\ndate is missing or invalid and swapping reversed bounds
+
+    Route -> Listing: listings posted by this vendor inside the range
+    activate Listing
+    Listing -> DB: SELECT * FROM listings\nWHERE vendor_id = :vid AND created_at BETWEEN :start AND :end
+    activate DB
+    DB --> Listing: only the vendor's own listings
+    deactivate DB
+    Listing --> Route: listings in range
+    deactivate Listing
+
+    alt No data in the range
+        Route -> Route: every metric stays 0 and the no-show rate is 0.0%
+    else Listings in range
+        Route -> Reservation: reservations on those listings
+        activate Reservation
+        Reservation -> DB: SELECT * FROM reservations WHERE listing_id IN (:ids)
+        activate DB
+        DB --> Reservation: reservation rows
+        deactivate DB
+        Reservation --> Route: reservations
+        deactivate Reservation
+        Route -> Route: sum portions posted, portions picked up and no-show portions\n(cancelled reservations release their portions)
+    end
+
+    Route -> Route: no_show_rate = no_show_portions / reserved_portions * 100
+    Route --> Vendor: dashboard with listings posted, portions posted,\nportions picked up, no-show count and no-show rate
+end
+deactivate Route
+
+@enduml

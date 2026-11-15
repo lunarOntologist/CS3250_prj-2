@@ -1,0 +1,47 @@
+@startuml sequence-US2
+
+autonumber
+
+actor "Vendor" as Vendor
+participant "Flask route\n(/listings/new)" as Route
+participant "PostListingForm" as Form
+participant "Listing model" as Listing
+database "PostgreSQL\n(listings)" as DB
+
+Vendor -> Route: GET /listings/new
+activate Route
+Route -> Route: check current_user.role == 'vendor'
+alt Logged in as a student
+    Route --> Vendor: 403 access denied
+else Logged in as a vendor
+    Route --> Vendor: render new listing form
+end
+deactivate Route
+
+Vendor -> Route: POST /listings/new\n(title, description, portions, location, tags, pickup start/end)
+activate Route
+Route -> Form: validate_on_submit()
+activate Form
+Form --> Route: field errors / valid data
+deactivate Form
+
+alt Required field empty or portions outside 1 to 100
+    Route --> Vendor: re-render form with the field errors, nothing saved
+else Pickup window end before its start
+    Route --> Vendor: error "Pickup window end must be after its start", nothing saved
+else Pickup window end already in the past
+    Route --> Vendor: error "Pickup window end must be in the future", nothing saved
+else Valid listing
+    Route -> Listing: Listing(vendor_id=current_user.id, title, description,\nportions_total, portions_reserved=0, pickup_location,\ndietary_tags, pickup_start, pickup_end, cancelled=false)
+    activate Listing
+    Listing -> DB: INSERT INTO listings (...)
+    activate DB
+    DB --> Listing: new listing id
+    deactivate DB
+    Listing --> Route: listing linked to the vendor account
+    deactivate Listing
+    Route --> Vendor: listing stored, redirect to the vendor home page
+end
+deactivate Route
+
+@enduml

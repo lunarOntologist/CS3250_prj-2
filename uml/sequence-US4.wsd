@@ -1,0 +1,83 @@
+@startuml sequence-US4
+
+autonumber
+
+actor "Student" as Student
+participant "Flask route\n(/listings/{id}/reserve)" as Route
+participant "Listing model" as Listing
+participant "Reservation model" as Reservation
+database "PostgreSQL\n(listings, reservations)" as DB
+
+Student -> Route: POST /listings/{id}/reserve (portions)
+activate Route
+Route -> Listing: query.get_or_404(listing_id)
+activate Listing
+Listing -> DB: SELECT * FROM listings WHERE id = :id
+activate DB
+DB --> Listing: listing row
+deactivate DB
+Listing --> Route: listing object
+deactivate Listing
+
+Route -> Reservation: filter_by(student_id, listing_id, status='active').first()
+activate Reservation
+Reservation -> DB: SELECT * FROM reservations\nWHERE student_id = :sid AND listing_id = :lid AND status = 'active'
+activate DB
+DB --> Reservation: existing reservation / none
+deactivate DB
+Reservation --> Route: reservation / None
+deactivate Reservation
+
+alt Student already holds an active reservation for this listing
+    Route --> Student: error "You already have an active reservation for this listing."
+else Requested portions are not 1 or 2
+    Route --> Student: error "Invalid portion count requested."
+else Requested portions exceed the portions remaining
+    Route -> Listing: remaining = portions_total - portions_reserved
+    activate Listing
+    Listing --> Route: too few portions left
+    deactivate Listing
+    Route --> Student: error "Not enough portions remaining for this listing.",\nno reservation created
+else Portions available
+    Route -> Listing: reload the row with a write lock
+    activate Listing
+    Listing -> DB: SELECT * FROM listings WHERE id = :id FOR UPDATE
+    activate DB
+    DB --> Listing: locked listing row
+    deactivate DB
+    Listing --> Route: listing with the current portions_reserved
+    deactivate Listing
+    note right of DB: The row lock serialises concurrent reservations,\nso two students reserving the last portion\ncannot drive the portions remaining below zero.
+
+    Route -> Reservation: generate_pickup_code()
+    activate Reservation
+    Reservation -> DB: SELECT * FROM reservations WHERE pickup_code = :code
+    activate DB
+    DB --> Reservation: code is free (retry while taken)
+    deactivate DB
+    Reservation --> Route: unique 6-character pickup code
+    deactivate Reservation
+
+    Route -> Reservation: Reservation(student_id, listing_id, portions, pickup_code, status='active')
+    activate Reservation
+    Reservation -> DB: INSERT INTO reservations (...)
+    activate DB
+    DB --> Reservation: reservation id
+    deactivate DB
+    Reservation --> Route: reservation stored
+    deactivate Reservation
+
+    Route -> Listing: portions_reserved += portions
+    activate Listing
+    Listing -> DB: UPDATE listings SET portions_reserved = portions_reserved + :portions
+    activate DB
+    DB --> Listing: portions remaining decreased
+    deactivate DB
+    Listing --> Route: updated listing
+    deactivate Listing
+
+    Route --> Student: success message with the pickup code
+end
+deactivate Route
+
+@enduml

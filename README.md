@@ -11,8 +11,23 @@ Each team designates one member as the **Scrum Master** before Sprint 1 begins a
 The Product Owner role is played by the instructor. The instructor has written the backlog and set the user value of each story; your team decides effort, priority within the rules below, and how the work is split.
 
 ```
-Scrum Master: <student's name>
+Scrum Master: Faye Gordon
 ```
+
+# Running the App
+
+```
+docker compose up --build
+```
+
+Then open http://localhost:5000. Seed accounts are created on first start:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Vendor | vendor@test.com | password123 |
+| Student | student@test.com | password123 |
+
+The vendor starts with 3 sample listings.
 
 # Project Vision
 
@@ -113,17 +128,17 @@ Before Sprint 1 starts, your team estimates every story and ranks the backlog us
 
 | ID | Short name | User value | Story points | Priority score | Rank |
 | --- | --- | --- | --- | --- | --- |
-| US1 | Register and log in | 3 |  |  |  |
-| US2 | Post a listing | 3 |  |  |  |
-| US3 | Browse listings | 3 |  |  |  |
-| US4 | Reserve portions | 3 |  |  |  |
-| US5 | Manage listings | 2 |  |  |  |
-| US6 | My reservations | 2 |  |  |  |
-| US7 | Confirm pickup | 3 |  |  |  |
-| US8 | Filter listings | 2 |  |  |  |
-| US9 | Impact dashboard | 1 |  |  |  |
-| US10 | Rate a pickup | 1 |  |  |  |
-| **Total** |  |  |  |  |  |
+| US1 | Register and log in | 3 | 3.50 | 0.857 | 1 |
+| US2 | Post a listing | 3 | 3.50 | 0.857 | 2 |
+| US3 | Browse listings | 3 | 3.00 | 1.000 | 3 |
+| US4 | Reserve portions | 3 | 4.00 | 0.750 | 5 |
+| US5 | Manage listings | 2 | 3.00 | 0.667 | 8 |
+| US6 | My reservations | 2 | 2.50 | 0.800 | 7 |
+| US7 | Confirm pickup | 3 | 3.25 | 0.923 | 6 |
+| US8 | Filter listings | 2 | 2.25 | 0.889 | 4 |
+| US9 | Impact dashboard | 1 | 2.25 | 0.444 | 10 |
+| US10 | Rate a pickup | 1 | 1.50 | 0.667 | 9 |
+| **Total** | | **23** | **28.75** | — | — |
 
 Priority Score Formula: 
 
@@ -142,18 +157,19 @@ Before writing any code, split the backlog across the three sprints and record i
 * Planned burndown: list the story points remaining at the start and after each planned sprint.
 
 ```
-Team capacity (story points per sprint): <your team's capacity>
+Team capacity (story points per sprint): 12 (provisional)
 
-Justification (one or two sentences: team size, hours available, course load): <justification>
+Justification (one or two sentences: team size, hours available, course load): Our team has five members, and everyone is balancing coursework alongside the project. We are using 12 story points per sprint as a provisional planning limit until team availability and actual sprint results can be reviewed.
 ```
 
 | Sprint | User stories (in order) | Story points planned | Points remaining after sprint | Dependencies checked (Y/N) |
 | --- | --- | --- | --- | --- |
-| Sprint 1 |  |  |  |  |
-| Sprint 2 |  |  |  |  |
-| Sprint 3 |  |  |  |  |
-| **Total** |  |  | — | — |
-
+| Sprint | User stories (in order) | Story points planned | Points remaining after sprint | Dependencies checked (Y/N) |
+| --- | --- | --- | --- | --- |
+| Sprint 1 | US1, US2, US3 | 12 | 25 | Y |
+| Sprint 2 | US4, US7, US6 | 12 | 13 | Y |
+| Sprint 3 | US5, US8, US10 | 9 | 4 | Y |
+| **Total** | **US1-US8, US10** | **33** | — | — |
 # Sprint Boards
 
 Track all tasks on a GitHub Projects board, Microsoft Teams pages, or any other tool of your preference. 
@@ -216,8 +232,12 @@ Write one automated black box test with Selenium for one user story of your choi
 
 | User story | Acceptance criterion | Tester | Date | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| US1 | 2: duplicate email rejected | Name | 99/99/26 | passed |  |
-| ... | ... | ... | ... | ... | ... |
+| US1 | Duplicate email rejected | Nikki | 11/12/26 | Passed |  |
+| US2 | Vendor posts a valid listing with a future pickup window and sees it saved to the vendor account | Nikki | 11/12/26 | Passed |  |
+| US3 | Student sees only active listings with portions remaining, sorted by earliest pickup end | Nikki | 11/12/26 | Passed |  |
+| US4 | Student reserves available portions and receives a unique 6-character pickup code | Nikki | 11/12/26 | Passed |  |
+| US5 | Deletion of a listing succeeded when there was >1 reservation on the listing | Artemis | 11/06/2026 | Passed | I had to make it loop through reservations |
+| US6 | Student cancels an active reservation and the portions are returned to the listing | Nikki | 11/12/26 | Passed |  |
 
 # Repository Structure
 

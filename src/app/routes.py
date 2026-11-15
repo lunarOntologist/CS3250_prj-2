@@ -1,0 +1,480 @@
+from app import app, db
+from app.models import Listing, User, Reservation, Rating
+from app.forms import PostListingForm, SignUpForm, LoginForm, PickupForm
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+DENVER = ZoneInfo('America/Denver')
+from flask import abort, render_template, redirect, url_for, request, flash
+from flask_login import login_required, login_user, logout_user, current_user
+import bcrypt
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = SignUpForm()
+    error = None
+    if form.validate_on_submit():
+        # check if email is taken
+        if User.query.filter_by(email=form.email.data).first():
+            error = 'That email is already registered'
+        else:
+            hashed_passwd = bcrypt.hashpw(form.passwd.data.encode('utf-8'), bcrypt.gensalt())
+            new_user = User(name=form.name.data, email=form.email.data, passwd=hashed_passwd, role=form.role.data)
+            db.session.add(new_user)
+            db.session.commit()
+            return redirect(url_for('login'))
+    return render_template('register.html', form=form, error=error)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    error = None
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.checkpw(form.passwd.data.encode('utf-8'), user.passwd):
+            login_user(user)
+            return redirect(url_for('home'))
+        error = 'Wrong email or password'
+    return render_template('login.html', form=form, error=error)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+@app.route('/home')
+@login_required
+def home():
+    # each role gets its own home page
+    if current_user.role == 'vendor':
+        return render_template('vendor_home.html')
+    return render_template('student_home.html')
+
+
+@app.route('/listings')
+@login_required
+def listings():
+    if current_user.role != 'student':
+        abort(403)
+
+    now = datetime.now(DENVER).replace(tzinfo=None)
+
+    available_listings = (
+        Listing.query
+        .filter(
+            Listing.pickup_end >= now,
+            Listing.portions_total > Listing.portions_reserved,
+            Listing.cancelled.is_(False),
+        )
+        .order_by(Listing.pickup_end.asc(), Listing.id.asc())
+        .all()
+    )
+
+    # Get available filter options
+    allowed_tags = {
+        value for value, label in PostListingForm().dietary_tags.choices
+    }
+
+    selected_tags = [
+        tag for tag in request.args.getlist('dietary_tags')
+        if tag in allowed_tags
+    ]
+
+    available_locations = sorted({
+        listing.pickup_location
+        for listing in available_listings
+        if listing.pickup_location
+    })
+
+    selected_location = request.args.get('pickup_location', '')
+
+    if selected_location not in available_locations:
+        selected_location = ''
+
+    # Apply filters
+    filtered_listings = available_listings
+
+    if selected_tags:
+        filtered_listings = [
+            listing for listing in filtered_listings
+            if all(tag in (listing.dietary_tags or []) for tag in selected_tags)
+        ]
+
+    if selected_location:
+        filtered_listings = [
+            listing for listing in filtered_listings
+            if listing.pickup_location == selected_location
+        ]
+
+    return render_template(
+        'listings.html',
+        listings=filtered_listings,
+        selected_tags=selected_tags,
+        available_locations=available_locations,
+        selected_location=selected_location,
+    )
+
+
+@app.route('/reservations')
+@login_required
+def student_reservations():
+    if current_user.role != 'student':
+        abort(403)
+
+    now = datetime.now(DENVER).replace(tzinfo=None)
+    reservations = (
+        Reservation.query
+        .filter_by(student_id=current_user.id)
+        .join(Listing)
+        .order_by(Listing.pickup_end.asc(), Reservation.id.asc())
+        .all()
+    )
+    return render_template('student_reservations.html', reservations=reservations, now=now)
+
+
+@app.route('/reservations/<int:reservation_id>/cancel', methods=['POST'])
+@login_required
+def cancel_reservation(reservation_id):
+    if current_user.role != 'student':
+        abort(403)
+
+    reservation = Reservation.query.filter_by(id=reservation_id, student_id=current_user.id).first_or_404()
+    listing = reservation.listing
+    now = datetime.now(DENVER).replace(tzinfo=None)
+
+    if reservation.status != 'active' or listing.pickup_end <= now:
+        flash('This reservation cannot be cancelled.', 'danger')
+        return redirect(url_for('student_reservations'))
+
+    reservation.status = 'cancelled'
+    listing.portions_reserved -= reservation.portions
+    db.session.add(reservation)
+    db.session.add(listing)
+    db.session.commit()
+
+    flash('Your reservation has been cancelled and the portions were returned.', 'success')
+    return redirect(url_for('student_reservations'))
+
+
+@app.route('/reservations/<int:reservation_id>/rate', methods=['POST'])
+@login_required
+def rate_reservation(reservation_id):
+    r = Reservation.query.filter_by(id=reservation_id, student_id=current_user.id).first_or_404()
+    stars = request.form.get('stars', type=int)
+    comment = request.form.get('comment', '').strip()
+    if r.status != 'picked_up' or r.rating:
+        flash('This pickup cannot be rated.', 'danger')
+    elif stars not in range(1, 6) or len(comment) > 300:
+        flash('Pick 1 to 5 stars, comment up to 300 characters.', 'danger')
+    else:
+        db.session.add(Rating(reservation_id=r.id, stars=stars, comment=comment))
+        db.session.commit()
+        flash('Thanks for rating!', 'success')
+    return redirect(url_for('student_reservations'))
+
+
+@app.route('/listings/new', methods=['GET', 'POST'])
+@login_required
+def new_listing():
+    if current_user.role != 'vendor':
+        abort(403)
+
+    form = PostListingForm()
+    if form.validate_on_submit():
+        now = datetime.now(DENVER).replace(tzinfo=None)
+        if form.pickup_end.data < form.pickup_start.data:
+            form.pickup_end.errors.append('Pickup window end must be after its start.')
+        elif form.pickup_end.data <= now:
+            form.pickup_end.errors.append('Pickup window end must be in the future.')
+        else:
+            listing = Listing(
+                vendor_id=current_user.id,
+                title=form.title.data,
+                description=form.description.data,
+                portions_total=form.portions_total.data,
+                pickup_location=form.pickup_location.data,
+                dietary_tags=form.dietary_tags.data,
+                pickup_start=form.pickup_start.data,
+                pickup_end=form.pickup_end.data,
+            )
+            db.session.add(listing)
+            db.session.commit()
+            return redirect(url_for('home'))
+
+    return render_template('listing_form.html', form=form)
+
+
+@app.route('/listings/<int:listing_id>/reserve', methods=['POST'])
+@login_required
+def reserve_portions(listing_id):
+    if current_user.role != 'student':
+        abort(403)
+
+    listing = Listing.query.get_or_404(listing_id)
+
+    # Check if student already holds an active reservation for this listing
+    existing_reservation = Reservation.query.filter_by(
+        student_id=current_user.id,
+        listing_id=listing.id,
+        status='active'
+    ).first()
+
+    if existing_reservation:
+        flash("You already have an active reservation for this listing.", "danger")
+        return redirect(url_for('listings'))
+
+    # Get and validate requested portions (must be 1 or 2)
+    try:
+        requested_portions = int(request.form.get('portions', 1))
+        if requested_portions not in (1, 2):
+            raise ValueError
+    except ValueError:
+        flash("Invalid portion count requested. Please select 1 or 2 portions.", "danger")
+        return redirect(url_for('listings'))
+
+    # Handle race condition / capacity check atomically using row lock (with_for_update)
+    listing = db.session.query(Listing).filter_by(id=listing_id).with_for_update().first()
+    remaining_portions = listing.portions_total - listing.portions_reserved
+
+    if requested_portions > remaining_portions:
+        flash("Not enough portions remaining for this listing.", "danger")
+        db.session.rollback()
+        return redirect(url_for('listings'))
+
+    # Create reservation and update listing portions
+    code = Reservation.generate_pickup_code()
+    new_reservation = Reservation(
+        student_id=current_user.id,
+        listing_id=listing.id,
+        portions=requested_portions,
+        pickup_code=code,
+        status='active'
+    )
+
+    listing.portions_reserved += requested_portions
+    db.session.add(new_reservation)
+    db.session.commit()
+
+    flash(f"Reservation successful! Your pickup code is: {code}", "success")
+    return redirect(url_for('listings'))
+
+
+
+def _listing_status(listing):
+    if listing.cancelled:
+        return 'cancelled'
+    if listing.pickup_end <= datetime.now(DENVER).replace(tzinfo=None):
+        return 'ended'
+    return 'active'
+
+
+@app.route('/vendor/listings')
+@login_required
+def manage_listings():
+    if current_user.role != 'vendor':
+        abort(403)
+
+    vendor_listings = (
+        Listing.query
+        .filter_by(vendor_id=current_user.id)
+        .order_by(Listing.pickup_end.asc())
+        .all()
+    )
+
+    mark_no_shows()
+    now = datetime.now(DENVER).replace(tzinfo=None)
+    return render_template(
+        'vendor_listings.html',
+        listings=vendor_listings,
+        now=now
+    )
+
+
+@app.route('/vendor/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_listing(listing_id):
+    listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    if listing.vendor_id != current_user.id:
+        abort(403)
+    if listing.cancelled:
+        flash('Cancelled listings cannot be edited.', 'danger')
+        return redirect(url_for('manage_listings'))
+
+    form = PostListingForm(obj=listing) if request.method == 'GET' else PostListingForm()
+    if form.validate_on_submit():
+        now = datetime.now(DENVER).replace(tzinfo=None)
+        if form.pickup_end.data < form.pickup_start.data:
+            form.pickup_end.errors.append('Pickup window end must be after its start.')
+        elif form.pickup_end.data <= now:
+            form.pickup_end.errors.append('Pickup window end must be in the future.')
+        elif form.portions_total.data < listing.portions_reserved:
+            form.portions_total.errors.append('Total portions cannot be less than reserved portions.')
+        else:
+            listing.title = form.title.data
+            listing.description = form.description.data
+            listing.portions_total = form.portions_total.data
+            listing.pickup_location = form.pickup_location.data
+            listing.dietary_tags = form.dietary_tags.data
+            listing.pickup_start = form.pickup_start.data
+            listing.pickup_end = form.pickup_end.data
+
+            db.session.add(listing)
+            db.session.commit()
+            return redirect(url_for('manage_listings'))
+
+    return render_template('listing_form.html', form=form)
+
+
+@app.route('/vendor/listings/<int:listing_id>/cancel', methods=['GET', 'POST'])
+@login_required
+def cancel_listing(listing_id):
+    current_listing = Listing.query.filter_by(id=listing_id).first_or_404()
+    if current_listing.vendor_id != current_user.id:
+        abort(403)
+
+    current_listing.cancelled = True
+    for reservation in current_listing.reservations:
+        if reservation.status == 'active':
+            reservation.status = 'cancelled'
+
+    db.session.add(current_listing)
+    db.session.commit()
+
+    return redirect(url_for('manage_listings'))
+
+def mark_no_shows():
+    # reservations still active after the pickup window ended become no-shows
+    now = datetime.now(DENVER).replace(tzinfo=None)
+    late = Reservation.query.join(Listing).filter(
+        Reservation.status == 'active',
+        Listing.pickup_end < now,
+    ).all()
+    for r in late:
+        r.status = 'no-show'
+    if late:
+        db.session.commit()
+
+
+def parse_date(value, default):
+    """Parse a YYYY-MM-DD string, falling back to ``default`` when invalid."""
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return default
+
+
+def is_no_show(reservation, now):
+    """A reservation counts as a no-show once its pickup window has ended.
+
+    Reservations explicitly marked ``no-show`` always count; still ``active``
+    ones count too once the listing's pickup window is over, matching the
+    status US7 shows on the vendor's listings page.
+    """
+    if reservation.status == 'no-show':
+        return True
+    return reservation.status == 'active' and reservation.listing.pickup_end < now
+
+
+def collect_impact_metrics(vendor_id, start_date, end_date):
+    """Impact metrics for one vendor's listings posted inside a date range.
+
+    Only the given vendor's listings are considered, so one vendor never sees
+    another vendor's data.
+    """
+    start = datetime.combine(start_date, datetime.min.time())
+    end = datetime.combine(end_date, datetime.max.time())
+    now = datetime.now(DENVER).replace(tzinfo=None)
+
+    listings = Listing.query.filter(
+        Listing.vendor_id == vendor_id,
+        Listing.created_at >= start,
+        Listing.created_at <= end,
+    ).all()
+    listing_ids = [listing.id for listing in listings]
+
+    portions_picked_up = 0
+    no_show_portions = 0
+    reserved_portions = 0
+
+    if listing_ids:
+        reservations = Reservation.query.filter(
+            Reservation.listing_id.in_(listing_ids)
+        ).all()
+        for reservation in reservations:
+            if reservation.status == 'cancelled':
+                # Cancelled reservations release their portions.
+                continue
+            if reservation.status == 'picked_up':
+                portions_picked_up += reservation.portions
+            if is_no_show(reservation, now):
+                no_show_portions += reservation.portions
+            reserved_portions += reservation.portions
+
+    no_show_rate = (no_show_portions / reserved_portions * 100) if reserved_portions else 0.0
+
+    return {
+        'listings_posted': len(listings),
+        'portions_posted': sum(listing.portions_total for listing in listings),
+        'portions_picked_up': portions_picked_up,
+        'no_show_count': no_show_portions,
+        'no_show_rate': round(no_show_rate, 1),
+    }
+
+
+@app.route('/vendor/dashboard')
+@login_required
+def dashboard():
+    if current_user.role != 'vendor':
+        abort(403)
+
+    today = datetime.now(DENVER).replace(tzinfo=None).date()
+    start_date = parse_date(request.args.get('start'), today)
+    end_date = parse_date(request.args.get('end'), today)
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
+
+    metrics = collect_impact_metrics(current_user.id, start_date, end_date)
+    return render_template(
+        'dashboard.html',
+        metrics=metrics,
+        start_date=start_date.isoformat(),
+        end_date=end_date.isoformat(),
+    )
+
+@app.route('/vendor/pickup', methods=['GET', 'POST'])
+@login_required
+def confirm_pickup():
+    if current_user.role != 'vendor':
+        abort(403)
+
+    mark_no_shows()
+    form = PickupForm()
+    error = None
+    picked_up = None
+    if form.validate_on_submit():
+        now = datetime.now(DENVER).replace(tzinfo=None)
+        code = form.code.data.strip().upper()
+        r = Reservation.query.filter_by(pickup_code=code).first()
+        if not r:
+            error = 'No reservation has that code.'
+        elif r.listing.vendor_id != current_user.id:
+            error = "That code is for another vendor's listing."
+        elif r.status == 'picked_up':
+            error = 'That code was already used.'
+        elif r.status == 'cancelled':
+            error = 'That reservation was cancelled.'
+        elif r.status == 'no-show':
+            error = 'The pickup window for that reservation has ended.'
+        elif now < r.listing.pickup_start:
+            error = "The pickup window hasn't started yet."
+        else:
+            r.status = 'picked_up'
+            db.session.commit()
+            picked_up = r
+
+    return render_template('confirm_pickup.html', form=form, error=error, picked_up=picked_up)
+

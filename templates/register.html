@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block main %}
+    <h1>Register</h1>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form action="" method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <p>{{ form.name.label }} <br> {{ form.name(size=30) }}
+            {% for e in form.name.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.email.label }} <br> {{ form.email(size=30) }}
+            {% for e in form.email.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.passwd.label }} <br> {{ form.passwd(size=30) }}
+            {% for e in form.passwd.errors %}<br><span class="error">{{ e }}</span>{% endfor %}</p>
+        <p>{{ form.role.label }} <br>
+            {% for r in form.role %}{{ r() }} {{ r.label }} {% endfor %}
+            {% if form.role.errors %}<br><span class="error">{{ form.role.errors[-1] }}</span>{% endif %}</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    <p><a href="{{ url_for('login') }}">Already have an account? Login</a></p>
+{% endblock %}
