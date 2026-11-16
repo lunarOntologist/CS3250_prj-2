@@ -1,7 +1,8 @@
 """Tests for US9: Impact dashboard."""
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from app import db
 
@@ -138,7 +139,7 @@ def test_dashboard_counts_active_reservations_on_ended_windows_as_no_shows(
     vendor = create_user('vendor@test.com', role='vendor')
     student = create_user('student@test.com', role='student')
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(ZoneInfo("America/Denver")).replace(tzinfo=None)
     listing = make_listing(vendor, now, portions_total=4)
     listing.pickup_end = now - timedelta(days=1)
     db.session.commit()
@@ -158,7 +159,7 @@ def test_dashboard_does_not_count_active_reservations_before_window_ends(
     vendor = create_user('vendor@test.com', role='vendor')
     student = create_user('student@test.com', role='student')
 
-    today = datetime.now(timezone.utc).replace(tzinfo=None)
+    today = datetime.now(ZoneInfo("America/Denver")).replace(tzinfo=None)
     future = today + timedelta(days=2)
     listing = make_listing(vendor, today, portions_total=4)
     listing.pickup_end = future
@@ -192,7 +193,7 @@ def test_dashboard_defaults_to_today(
     vendor = create_user('vendor@test.com', role='vendor')
     student = create_user('student@test.com', role='student')
 
-    today = datetime.now(timezone.utc).replace(tzinfo=None)
+    today = datetime.now(ZoneInfo("America/Denver")).replace(tzinfo=None)
     listing = make_listing(vendor, today, portions_total=3)
     make_reservation(listing, student, portions=1, status='picked_up')
     # A listing from long ago must not appear in the default range.
